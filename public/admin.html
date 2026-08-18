@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌾 Admin Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f0f7f0; }
+    header { background: #1b4332; color: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
+    .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card { background: white; padding: 1.5rem; border-radius: 10px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 4px solid #2d6a4f; }
+    .stat-card h3 { font-size: 2rem; color: #2d6a4f; }
+    .stat-card p { color: #666; }
+    .admin-tab { padding: 0.5rem 1rem; background: white; border: 2px solid #d4edda; border-radius: 50px; cursor: pointer; margin-right: 0.5rem; margin-bottom: 0.5rem; }
+    .admin-tab.active { background: #2d6a4f; color: white; border-color: #2d6a4f; }
+    .tab-content { background: white; padding: 1.5rem; border-radius: 10px; margin-top: 1rem; display: none; }
+    .tab-content.active { display: block; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th, td { padding: 0.5rem; text-align: left; border-bottom: 1px solid #eee; }
+    th { background: #f0f7f0; }
+    .btn { padding: 0.3rem 0.7rem; border: none; border-radius: 5px; cursor: pointer; }
+    .btn-danger { background: #e74c3c; color: white; }
+    .btn-success { background: #2d6a4f; color: white; }
+    .btn-warning { background: #f39c12; color: white; }
+    .btn-sm { padding: 0.2rem 0.5rem; font-size: 0.8rem; }
+    .price-item { display: flex; justify-content: space-between; align-items: center; padding: 0.7rem; background: #f8fbf8; border-radius: 8px; margin-bottom: 0.5rem; border-left: 4px solid #2d6a4f; flex-wrap: wrap; gap: 0.5rem; }
+    .price-item .admin-badge { background: #f39c12; color: white; padding: 0.2rem 0.5rem; border-radius: 20px; font-size: 0.7rem; }
+    .price-item .auto-badge { background: #2d6a4f; color: white; padding: 0.2rem 0.5rem; border-radius: 20px; font-size: 0.7rem; }
+    .price-form { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .price-form input { padding: 0.5rem; border: 2px solid #d4edda; border-radius: 8px; flex: 1; min-width: 120px; }
+    .price-form button { padding: 0.5rem 1.5rem; background: #2d6a4f; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    .logout-btn { background: #e74c3c; color: white; border: none; padding: 0.5rem 1rem; border-radius: 50px; cursor: pointer; }
+    .login-box { max-width: 400px; margin: 0 auto; text-align: center; padding: 2rem; background: white; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .login-box input { width: 100%; padding: 0.7rem; border: 2px solid #d4edda; border-radius: 8px; margin-bottom: 1rem; }
+    .login-box button { width: 100%; padding: 0.7rem; background: #2d6a4f; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    .alert { padding: 0.8rem; border-radius: 8px; margin-bottom: 1rem; display: none; }
+    .alert-success { background: #d4edda; color: #155724; display: block; }
+    .alert-error { background: #f8d7da; color: #721c24; display: block; }
+    .like-count { color: #2d6a4f; font-weight: bold; }
+    .dislike-count { color: #e74c3c; font-weight: bold; }
+    @media (max-width: 768px) {
+      .price-form input { min-width: 100%; }
+      .price-item { flex-direction: column; align-items: flex-start; }
+      table { font-size: 0.7rem; }
+      th, td { padding: 0.3rem; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>🌾 AgriConnect Admin</h1>
+  <button class="logout-btn" onclick="logoutAdmin()">Logout</button>
+</header>
+<div class="container">
+  <div id="alert" class="alert"></div>
+  <div id="loginBox" class="login-box">
+    <h2>🔐 Admin Login</h2>
+    <p style="color:#888; margin-bottom:1rem;">Enter admin key</p>
+    <input type="password" id="adminKeyInput" placeholder="Admin Key" value="admin123">
+    <button onclick="loginAdmin()">Enter Dashboard</button>
+    <p style="margin-top:0.8rem; font-size:0.8rem; color:#999;">Default: admin123</p>
+  </div>
+  <div id="dashboard" style="display:none;">
+    <div class="stats-grid">
+      <div class="stat-card"><h3 id="statUsers">-</h3><p>Users</p></div>
+      <div class="stat-card"><h3 id="statProducts">-</h3><p>Products</p></div>
+      <div class="stat-card"><h3 id="statPosts">-</h3><p>Community</p></div>
+      <div class="stat-card"><h3 id="statComments">-</h3><p>Comments</p></div>
+    </div>
+    <div>
+      <button class="admin-tab active" onclick="showTab('users')">👥 Users</button>
+      <button class="admin-tab" onclick="showTab('products')">📦 Products</button>
+      <button class="admin-tab" onclick="showTab('community')">👥 Community</button>
+      <button class="admin-tab" onclick="showTab('comments')">💬 Comments</button>
+      <button class="admin-tab" onclick="showTab('prices')">💰 Prices</button>
+    </div>
+    <div id="tab-users" class="tab-content active"></div>
+    <div id="tab-products" class="tab-content"></div>
+    <div id="tab-community" class="tab-content"></div>
+    <div id="tab-comments" class="tab-content"></div>
+    <div id="tab-prices" class="tab-content"></div>
+  </div>
+</div>
+<script>
+    const API_BASE = window.location.origin + '/api';
+    let adminKey = localStorage.getItem('adminKey') || '';
+
+    function showAlert(msg, type = 'info') {
+        const el = document.getElementById('alert');
+        el.textContent = msg;
+        el.className = 'alert alert-' + type;
+        setTimeout(() => { el.className = 'alert'; }, 4000);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function loginAdmin() {
+        const key = document.getElementById('adminKeyInput').value.trim();
+        if (!key) return showAlert('Enter admin key', 'error');
+        adminKey = key;
+        localStorage.setItem('adminKey', key);
+        document.getElementById('loginBox').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        loadAllData();
+        showAlert('✅ Admin access granted', 'success');
+    }
+
+    function logoutAdmin() {
+        localStorage.removeItem('adminKey');
+        adminKey = '';
+        document.getElementById('loginBox').style.display = 'block';
+        document.getElementById('dashboard').style.display = 'none';
+        document.getElementById('adminKeyInput').value = 'admin123';
+        showAlert('Admin logged out', 'info');
+    }
+
+    function showTab(name) {
+        document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelector(`[onclick="showTab('${name}')"]`).classList.add('active');
+        document.getElementById('tab-' + name).classList.add('active');
+        if (name === 'prices') loadAdminPrices();
+    }
+
+    async function loadAllData() {
+        try {
+            const res = await fetch(API_BASE + '/admin/stats?key=' + adminKey);
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('statUsers').textContent = data.stats.users || 0;
+                document.getElementById('statProducts').textContent = data.stats.products || 0;
+                document.getElementById('statPosts').textContent = data.stats.posts || 0;
+                document.getElementById('statComments').textContent = data.stats.comments || 0;
+            }
+        } catch(e) { console.error('Stats error:', e); }
+        loadTable('users', 'tab-users', ['id', 'username', 'full_name', 'location', 'phone']);
+        loadTable('products', 'tab-products', ['id', 'title', 'price', 'category', 'location']);
+        loadTable('community', 'tab-community', ['id', 'title', 'author', 'created_at']);
+        loadTable('comments', 'tab-comments', ['id', 'product_id', 'user_id', 'comment', 'likes', 'dislikes']);
+    }
+
+    async function loadTable(type, containerId, fields) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '<p>Loading...</p>';
+        try {
+            const res = await fetch(API_BASE + '/admin/' + type + '?key=' + adminKey);
+            const data = await res.json();
+            console.log('✅ Admin data for', type, ':', data);
+            let items = [];
+            if (type === 'users') items = data.users || [];
+            else if (type === 'products') items = data.products || [];
+            else if (type === 'community') items = data.posts || [];
+            else if (type === 'comments') items = data.comments || [];
+
+            if (items.length === 0) {
+                container.innerHTML = '<p style="color:#888;">No data found</p>';
+                return;
+            }
+
+            container.innerHTML = `
+                <table>
+                    <thead><tr>
+                        ${fields.map(f => `<th>${f.replace(/_/g, ' ')}</th>`).join('')}
+                        <th>Action</th>
+                    </tr></thead>
+                    <tbody>
+                        ${items.map(item => `
+                            <tr>
+                                ${fields.map(f => {
+                                    let val = item[f] !== undefined ? item[f] : '-';
+                                    if (f === 'likes') {
+                                        return `<td><span class="like-count">👍 ${val}</span></td>`;
+                                    } else if (f === 'dislikes') {
+                                        return `<td><span class="dislike-count">👎 ${val}</span></td>`;
+                                    } else {
+                                        return `<td>${escapeHtml(String(val).substring(0, 40))}</td>`;
+                                    }
+                                }).join('')}
+                                <td><button class="btn btn-danger btn-sm" onclick="deleteItem('${type}', ${item.id})">Delete</button></td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        } catch(e) {
+            console.error('Error loading table:', e);
+            container.innerHTML = '<p style="color:#c0392b;">Failed to load</p>';
+        }
+    }
+
+    async function deleteItem(type, id) {
+        if (!confirm('Delete this item?')) return;
+        try {
+            const res = await fetch(API_BASE + '/admin/' + type + '/' + id + '?key=' + adminKey, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                showAlert('✅ Deleted successfully', 'success');
+                loadAllData();
+            } else {
+                showAlert('❌ ' + data.message, 'error');
+            }
+        } catch(e) {
+            showAlert('❌ Error deleting', 'error');
+        }
+    }
+
+    // ================================================================
+    // PRICES MANAGEMENT
+    // ================================================================
+
+    async function loadAdminPrices() {
+        const container = document.getElementById('tab-prices');
+        container.innerHTML = `
+            <h3>💰 Manage Market Prices</h3>
+            <div class="price-form">
+                <input type="text" id="priceProduct" placeholder="Product *">
+                <input type="text" id="priceValue" placeholder="Price *">
+                <input type="text" id="priceUnit" placeholder="Unit (e.g., ton)">
+                <input type="text" id="priceMarket" placeholder="Market *">
+                <button onclick="addPrice()" class="btn btn-success">Add Price</button>
+            </div>
+            <div id="priceList"><p>Loading prices...</p></div>
+        `;
+        await refreshPriceList();
+    }
+
+    async function refreshPriceList() {
+        const list = document.getElementById('priceList');
+        try {
+            const res = await fetch(API_BASE + '/market');
+            const data = await res.json();
+            if (data.success && data.marketPrices) {
+                if (data.marketPrices.length === 0) {
+                    list.innerHTML = '<p style="color:#888;">No prices found</p>';
+                    return;
+                }
+                list.innerHTML = data.marketPrices.map(p => `
+                    <div class="price-item" style="border-left-color: ${p.source === 'admin' ? '#e67e22' : '#2d6a4f'};">
+                        <div>
+                            <strong>${escapeHtml(p.product)}</strong> · ${escapeHtml(p.price)} 
+                            <span style="color:#888;">${escapeHtml(p.unit || '')}</span>
+                            <span style="color:#888; font-size:0.8rem;">📍 ${escapeHtml(p.market)}</span>
+                            ${p.source === 'admin' ? '<span class="admin-badge">👑 Admin</span>' : '<span class="auto-badge">🤖 Auto</span>'}
+                            <span style="color:#888; font-size:0.7rem; display:block;">Updated: ${new Date(p.updated_at).toLocaleString()}</span>
+                        </div>
+                        <div>
+                            <button class="btn btn-warning btn-sm" onclick="resetToAuto('${escapeHtml(p.product)}', '${escapeHtml(p.market)}')">↺ Reset</button>
+                            <button class="btn btn-danger btn-sm" onclick="deletePrice(${p.id})">🗑️</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        } catch(e) {
+            list.innerHTML = '<p style="color:#c0392b;">Failed to load prices</p>';
+        }
+    }
+
+    async function addPrice() {
+        const product = document.getElementById('priceProduct').value.trim();
+        const price = document.getElementById('priceValue').value.trim();
+        const unit = document.getElementById('priceUnit').value.trim();
+        const market = document.getElementById('priceMarket').value.trim();
+        if (!product || !price || !market) return showAlert('All fields required', 'error');
+        try {
+            const res = await fetch(API_BASE + '/admin/prices?key=' + adminKey, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ product, price, unit, market }) });
+            const data = await res.json();
+            if (data.success) {
+                showAlert('✅ Price added/updated!', 'success');
+                document.getElementById('priceProduct').value = '';
+                document.getElementById('priceValue').value = '';
+                document.getElementById('priceUnit').value = '';
+                document.getElementById('priceMarket').value = '';
+                await refreshPriceList();
+            } else showAlert('❌ ' + data.message, 'error');
+        } catch(e) { showAlert('❌ Error', 'error'); }
+    }
+
+    async function deletePrice(id) {
+        if (!confirm('Delete this price?')) return;
+        try {
+            const res = await fetch(API_BASE + '/admin/prices/' + id + '?key=' + adminKey, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                showAlert('✅ Price deleted!', 'success');
+                await refreshPriceList();
+            } else showAlert('❌ ' + data.message, 'error');
+        } catch(e) { showAlert('❌ Error', 'error'); }
+    }
+
+    async function resetToAuto(product, market) {
+        if (!confirm(`Reset "${product}" to automated?`)) return;
+        try {
+            const res = await fetch(API_BASE + '/admin/prices/reset/' + encodeURIComponent(product) + '/' + encodeURIComponent(market) + '?key=' + adminKey, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                showAlert('✅ Reset to automated!', 'success');
+                await refreshPriceList();
+            } else showAlert('❌ ' + data.message, 'error');
+        } catch(e) { showAlert('❌ Error', 'error'); }
+    }
+
+    // ================================================================
+    // INIT
+    // ================================================================
+
+    if (adminKey) {
+        document.getElementById('loginBox').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        loadAllData();
+    }
+    console.log('🌾 Admin dashboard loaded');
+</script>
+</body>
+</html>

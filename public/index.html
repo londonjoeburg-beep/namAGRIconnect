@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>🌾 AgriConnect Namibia</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ===== RESET & BASE ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(160deg, #f0f7f0 0%, #e8f5e9 100%);
+            color: #1a2e1a;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* ===== HEADER ===== */
+        header {
+            background: linear-gradient(135deg, #1b4332, #2d6a4f, #40916c);
+            color: white;
+            padding: 0.9rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        }
+        header h1 { font-size: 1.5rem; cursor: pointer; }
+        nav { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+        nav a {
+            color: white;
+            text-decoration: none;
+            padding: 0.4rem 0.85rem;
+            border-radius: 50px;
+            font-size: 0.88rem;
+            background: rgba(255,255,255,0.1);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        nav a:hover { background: rgba(255,255,255,0.25); transform: scale(1.05); }
+        #userStatus {
+            background: rgba(255,255,255,0.18);
+            padding: 0.3rem 0.9rem;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            display: none;
+        }
+        #userStatus.show { display: inline-block; }
+
+        /* ===== CONTAINER ===== */
+        .container { max-width: 1100px; margin: 1.5rem auto; padding: 0 1rem; }
+        .section {
+            background: white;
+            padding: 1.6rem;
+            margin-bottom: 1.5rem;
+            border-radius: 14px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+        .section.active { display: block; }
+        .section h2 { color: #1b4332; margin-bottom: 1.2rem; font-size: 1.5rem; border-bottom: 2px solid #e8f5e9; padding-bottom: 0.5rem; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ===== ALERTS ===== */
+        .alert {
+            padding: 0.9rem 1.1rem;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            display: none;
+            font-weight: 500;
+        }
+        .alert.show { display: block; }
+        .alert.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .alert.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .alert.info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+
+        /* ===== FLASH BANNER ===== */
+        .flash-banner {
+            background: linear-gradient(90deg, #2d6a4f, #40916c);
+            color: white;
+            padding: 0.85rem 1.2rem;
+            border-radius: 12px;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            transition: opacity 0.5s;
+        }
+        .livestock-row {
+            display: flex;
+            justify-content: center;
+            gap: 1.2rem;
+            flex-wrap: wrap;
+            margin: 1.2rem 0 1.8rem;
+            font-size: 2.8rem;
+        }
+
+        /* ===== FEATURE GRID ===== */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        .feature-card {
+            background: #f8fbf8;
+            border: 1px solid #d8e8d8;
+            border-radius: 12px;
+            padding: 1.3rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .feature-card:hover { border-color: #2d6a4f; transform: translateY(-6px); box-shadow: 0 8px 25px rgba(45,106,79,0.15); }
+        .feature-card .icon { font-size: 2.3rem; margin-bottom: 0.4rem; }
+        .feature-card h3 { color: #1b4332; font-size: 1.1rem; }
+        .feature-card p { color: #666; font-size: 0.85rem; }
+
+        /* ===== FORMS ===== */
+        form { display: flex; flex-direction: column; gap: 0.9rem; max-width: 480px; }
+        form input, form textarea, form select {
+            padding: 0.75rem 1rem;
+            border: 2px solid #d4edda;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        form input:focus, form textarea:focus, form select:focus {
+            outline: none; border-color: #2d6a4f; box-shadow: 0 0 0 3px rgba(45,106,79,0.1);
+        }
+        form button {
+            background: linear-gradient(135deg, #2d6a4f, #40916c);
+            color: white;
+            border: none;
+            padding: 0.8rem;
+            border-radius: 10px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        form button:hover { transform: scale(1.02); box-shadow: 0 4px 15px rgba(45,106,79,0.3); }
+        form button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        /* ===== PRODUCT GRID ===== */
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.3rem;
+        }
+        .product-card {
+            border: 1px solid #e0ece0;
+            border-radius: 12px;
+            overflow: hidden;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.3s;
+        }
+        .product-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .product-img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            background: #e8f5e9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+        .product-body { padding: 1.1rem; flex: 1; display: flex; flex-direction: column; }
+        .product-card h3 { color: #1b4332; font-size: 1.1rem; margin: 0.3rem 0; }
+        .price { font-size: 1.35rem; font-weight: 700; color: #d4a373; margin: 0.3rem 0; }
+        .category {
+            display: inline-block;
+            background: #e8f5e9;
+            color: #2d6a4f;
+            padding: 0.15rem 0.7rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            align-self: flex-start;
+        }
+
+        /* ===== BUTTONS ===== */
+        .comment-btn, .contact-btn {
+            margin-top: 8px;
+            width: 100%;
+            background: #2d6a4f;
+            color: white;
+            border: none;
+            padding: 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .comment-btn:hover, .contact-btn:hover { background: #1b4332; transform: scale(1.02); }
+
+        /* ===== COMMENTS ===== */
+        .comments-box {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #d4edda;
+            display: none;
+        }
+        .comments-box.open { display: block; }
+        .comment-item {
+            background: #f6faf6;
+            padding: 0.55rem 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 0.45rem;
+            font-size: 0.88rem;
+        }
+        .comment-form {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.6rem;
+        }
+        .comment-form input {
+            flex: 1;
+            padding: 0.5rem 0.75rem;
+            border: 1.5px solid #d4edda;
+            border-radius: 8px;
+        }
+        .comment-form button {
+            padding: 0.5rem 1rem;
+            background: #2d6a4f;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* ===== COMMUNITY ===== */
+        .community-post {
+            background: #f8fbf8;
+            border: 1px solid #d8e8d8;
+            border-radius: 12px;
+            padding: 1.1rem 1.3rem;
+            margin-bottom: 0.9rem;
+            transition: all 0.3s;
+        }
+        .community-post:hover { border-color: #2d6a4f; }
+
+        /* ===== INFO GRID (Weather & Prices) ===== */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+            gap: 1rem;
+        }
+        .info-card {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 10px;
+            border-left: 4px solid #2d6a4f;
+            transition: all 0.3s;
+        }
+        .info-card:hover { transform: translateY(-3px); box-shadow: 0 4px 15px rgba(0,0,0,0.08); }
+
+        /* ===== LOCKED ===== */
+        .locked {
+            text-align: center;
+            padding: 2.5rem 1rem;
+            color: #555;
+        }
+        .locked button {
+            margin-top: 1rem;
+            background: #2d6a4f;
+            color: white;
+            border: none;
+            padding: 0.65rem 1.4rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .locked button:hover { transform: scale(1.05); }
+
+        /* ===== PRICE INDICATORS ===== */
+        .source-badge {
+            display: inline-block;
+            padding: 0.1rem 0.5rem;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            font-weight: 600;
+        }
+        .source-admin { background: #f39c12; color: white; }
+        .source-auto { background: #2d6a4f; color: white; }
+
+        /* ===== MARKET PRICES ===== */
+        .market-group {
+            margin-bottom: 1.5rem;
+        }
+        .market-group h3 {
+            color: #1b4332;
+            border-bottom: 2px solid #2d6a4f;
+            padding-bottom: 0.3rem;
+            margin-bottom: 0.8rem;
+        }
+        .market-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 0.8rem;
+        }
+
+        /* ===== FOOTER ===== */
+        footer {
+            background: #1b3a2b;
+            color: white;
+            text-align: center;
+            padding: 1.8rem 1rem;
+            margin-top: 2rem;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            header { flex-direction: column; padding: 1rem; }
+            nav { justify-content: center; }
+            nav a { font-size: 0.8rem; padding: 0.3rem 0.6rem; }
+            .product-grid { grid-template-columns: 1fr; }
+            .feature-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 480px) {
+            .feature-grid { grid-template-columns: 1fr; }
+            .market-items { grid-template-columns: 1fr; }
+            .info-grid { grid-template-columns: 1fr; }
+            .section { padding: 1rem; }
+            header h1 { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header>
+    <h1 onclick="showSection('home')">🌾 AgriConnect Namibia</h1>
+    <nav>
+        <a onclick="showSection('home')">🏠 Home</a>
+        <a onclick="showSection('register')" id="regNav">📝 Register</a>
+        <a onclick="showSection('login')" id="loginNav">🔑 Login</a>
+        <a onclick="requireLogin('post')" id="postNav" style="display:none;">📦 Post</a>
+        <a onclick="requireLogin('browse')">📋 Browse</a>
+        <a onclick="requireLogin('community')">👥 Community</a>
+        <a onclick="showSection('weather')">☀️ Weather</a>
+        <a onclick="requireLogin('market')">💰 Prices</a>
+        <a onclick="showSection('admin')">🔐 Admin</a>
+        <a onclick="logout()" id="logoutBtn" style="display:none;">🚪 Logout</a>
+    </nav>
+    <span id="userStatus"></span>
+</header>
+
+<!-- ===== MAIN CONTAINER ===== -->
+<div class="container">
+    <div id="alert" class="alert"></div>
+
+    <!-- ===== HOME ===== -->
+    <div id="home" class="section active">
+        <div style="text-align:center; margin-bottom:1.5rem;">
+            <h2>🌾 Welcome to AgriConnect Namibia</h2>
+            <p style="color:#555; margin-top:0.5rem;">Connecting Namibian farmers to markets and each other</p>
+        </div>
+        <div class="flash-banner" id="flashText">🌾 Fresh produce available this week across Namibia!</div>
+        <div class="livestock-row">🐄 🐐 🐑 🐔 🐖 🐴</div>
+        <div class="feature-grid">
+            <div class="feature-card" onclick="requireLogin('post')"><div class="icon">📦</div><h3>Post Products</h3><p>Sell with photos</p></div>
+            <div class="feature-card" onclick="requireLogin('browse')"><div class="icon">🔍</div><h3>Browse</h3><p>Find produce & livestock</p></div>
+            <div class="feature-card" onclick="requireLogin('community')"><div class="icon">👥</div><h3>Community</h3><p>Share tips & news</p></div>
+            <div class="feature-card" onclick="showSection('weather')"><div class="icon">☀️</div><h3>Weather</h3><p>Plan your farming</p></div>
+            <div class="feature-card" onclick="requireLogin('market')"><div class="icon">💰</div><h3>Prices</h3><p>Current market rates</p></div>
+        </div>
+    </div>
+
+    <!-- ===== REGISTER ===== -->
+    <div id="register" class="section">
+        <h2>📝 Create Account</h2>
+        <form id="registerForm">
+            <input type="text" id="regUsername" placeholder="Username *" required>
+            <input type="password" id="regPassword" placeholder="Password *" required>
+            <input type="text" id="regFullName" placeholder="Full Name">
+            <input type="text" id="regLocation" placeholder="Location">
+            <input type="tel" id="regPhone" placeholder="Phone Number">
+            <input type="email" id="regEmail" placeholder="Email">
+            <button type="submit">Create Account</button>
+        </form>
+        <p style="margin-top:1rem; color:#555;">Already have an account? <a onclick="showSection('login')" style="color:#2d6a4f; cursor:pointer; font-weight:600;">Login</a></p>
+    </div>
+
+    <!-- ===== LOGIN ===== -->
+    <div id="login" class="section">
+        <h2>🔑 Login</h2>
+        <form id="loginForm">
+            <input type="text" id="loginUsername" placeholder="Username" required>
+            <input type="password" id="loginPassword" placeholder="Password" required>
+            <button type="submit">Login</button>
+        </form>
+        <p style="margin-top:1rem; color:#555;">No account? <a onclick="showSection('register')" style="color:#2d6a4f; cursor:pointer; font-weight:600;">Register</a></p>
+    </div>
+
+    <!-- ===== POST PRODUCT ===== -->
+    <div id="post" class="section">
+        <h2>📦 Post a Product</h2>
+        <div id="postLocked" class="locked" style="display:none;">
+            <div style="font-size:3rem;">🔒</div>
+            <h3>Login required</h3>
+            <button onclick="showSection('login')">Go to Login</button>
+        </div>
+        <div id="postContent">
+            <form id="productForm">
+                <input type="text" id="prodTitle" placeholder="Product Title *" required>
+                <textarea id="prodDescription" placeholder="Description"></textarea>
+                <input type="number" id="prodPrice" placeholder="Price (N$) *" required step="0.01" min="0">
+                <input type="text" id="prodQuantity" placeholder="Quantity (e.g., 50kg)">
+                <select id="prodCategory">
+                    <option value="">Select Category</option>
+                    <option value="Grains">Grains</option>
+                    <option value="Vegetables">Vegetables</option>
+                    <option value="Fruits">Fruits</option>
+                    <option value="Livestock">Livestock</option>
+                    <option value="Dairy">Dairy</option>
+                    <option value="Other">Other</option>
+                </select>
+                <input type="text" id="prodLocation" placeholder="Your Location">
+                <input type="file" id="prodImage" accept="image/*">
+                <img id="imagePreview" style="max-width:200px; max-height:140px; display:none; margin-top:8px; border-radius:8px;">
+                <button type="submit">Post Product</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== BROWSE ===== -->
+    <div id="browse" class="section">
+        <h2>📋 Browse Products</h2>
+        <div id="browseLocked" class="locked" style="display:none;">
+            <div style="font-size:3rem;">🔒</div>
+            <h3>Login required</h3>
+            <button onclick="showSection('login')">Go to Login</button>
+        </div>
+        <div id="browseContent">
+            <div style="display:flex; gap:0.6rem; flex-wrap:wrap; margin-bottom:1rem;">
+                <input type="text" id="searchInput" placeholder="Search products..." style="flex:1; min-width:180px; padding:0.65rem 1rem; border:2px solid #d4edda; border-radius:10px;">
+                <select id="categoryFilter" style="padding:0.65rem 1rem; border:2px solid #d4edda; border-radius:10px;">
+                    <option value="">All Categories</option>
+                    <option value="Grains">Grains</option>
+                    <option value="Vegetables">Vegetables</option>
+                    <option value="Fruits">Fruits</option>
+                    <option value="Livestock">Livestock</option>
+                    <option value="Dairy">Dairy</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div id="productList" class="product-grid">
+                <p style="grid-column:1/-1; text-align:center; padding:2rem; color:#666;">Loading products...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== COMMUNITY ===== -->
+    <div id="community" class="section">
+        <h2>👥 Farmers Community</h2>
+        <div id="communityLocked" class="locked" style="display:none;">
+            <div style="font-size:3rem;">🔒</div>
+            <h3>Login required</h3>
+            <button onclick="showSection('login')">Go to Login</button>
+        </div>
+        <div id="communityContent">
+            <form id="communityForm" style="max-width:100%; margin-bottom:1.5rem;">
+                <input type="text" id="commTitle" placeholder="Title *" required>
+                <textarea id="commBody" placeholder="Write your news or tip..." required></textarea>
+                <button type="submit">📢 Post to Community</button>
+            </form>
+            <div id="communityList"></div>
+        </div>
+    </div>
+
+    <!-- ===== WEATHER ===== -->
+    <div id="weather" class="section">
+        <h2>☀️ Weather Updates</h2>
+        <div id="weatherList" class="info-grid">
+            <p style="grid-column:1/-1; text-align:center; padding:2rem; color:#666;">Loading weather data...</p>
+        </div>
+    </div>
+
+    <!-- ===== MARKET PRICES ===== -->
+    <div id="market" class="section">
+        <h2>💰 Market Prices</h2>
+        <p style="margin-bottom:1rem; color:#555;">Current market prices across Namibia. Updated regularly.</p>
+        <div id="marketLocked" class="locked" style="display:none;">
+            <div style="font-size:3rem;">🔒</div>
+            <h3>Login required</h3>
+            <button onclick="showSection('login')">Go to Login</button>
+        </div>
+        <div id="marketContent">
+            <div id="marketList" class="info-grid">
+                <p style="grid-column:1/-1; text-align:center; padding:2rem; color:#666;">Loading market prices...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== ADMIN ===== -->
+    <div id="admin" class="section">
+        <h2>🔐 Admin Dashboard</h2>
+        <div style="text-align:center; padding:1rem;">
+            <p style="color:#555; margin-bottom:1rem;">This page is for administrators only.</p>
+            <a href="/admin" style="display:inline-block; padding:0.8rem 2rem; background:#2d6a4f; color:white; border-radius:10px; text-decoration:none; font-weight:600;">Go to Admin</a>
+        </div>
+    </div>
+</div>
+
+<!-- ===== FOOTER ===== -->
+<footer>
+    <p>🌾 AgriConnect Namibia &copy; 2025 | Connecting Namibian Farmers</p>
+</footer>
+
+<!-- ================================================================ -->
+<!-- ===== JAVASCRIPT ===== -->
+<!-- ================================================================ -->
+<script>
+    // ================================================================
+    // CONFIGURATION
+    // ================================================================
+    const API_BASE = window.location.origin + '/api';
+    let currentUser = null;
+    let allProducts = [];
+
+    // ================================================================
+    // DOM REFS
+    // ================================================================
+    const alertDiv = document.getElementById('alert');
+    const userStatus = document.getElementById('userStatus');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const postNav = document.getElementById('postNav');
+    const regNav = document.getElementById('regNav');
+    const loginNav = document.getElementById('loginNav');
+
+    // ================================================================
+    // UTILITY FUNCTIONS
+    // ================================================================
+    function showAlert(msg, type = 'info') {
+        alertDiv.textContent = msg;
+        alertDiv.className = `alert show ${type}`;
+        setTimeout(() => alertDiv.classList.remove('show'), 4000);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function requireLogin(sectionId) {
+        if (!currentUser) {
+            showAlert('⚠️ Please login first', 'error');
+            showSection('login');
+            return;
+        }
+        showSection(sectionId);
+    }
+
+    function showSection(id) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        const target = document.getElementById(id);
+        if (!target) return;
+        target.classList.add('active');
+
+        if (id === 'post') {
+            document.getElementById('postLocked').style.display = currentUser ? 'none' : 'block';
+            document.getElementById('postContent').style.display = currentUser ? 'block' : 'none';
+        }
+        if (id === 'browse') {
+            document.getElementById('browseLocked').style.display = currentUser ? 'none' : 'block';
+            document.getElementById('browseContent').style.display = currentUser ? 'block' : 'none';
+            if (currentUser) loadProducts();
+        }
+        if (id === 'community') {
+            document.getElementById('communityLocked').style.display = currentUser ? 'none' : 'block';
+            document.getElementById('communityContent').style.display = currentUser ? 'block' : 'none';
+            if (currentUser) loadCommunity();
+        }
+        if (id === 'market') {
+            document.getElementById('marketLocked').style.display = currentUser ? 'none' : 'block';
+            document.getElementById('marketContent').style.display = currentUser ? 'block' : 'none';
+            if (currentUser) loadMarket();
+        }
+        if (id === 'weather') loadWeather();
+    }
+
+    function updateUserUI() {
+        if (currentUser) {
+            userStatus.textContent = '👤 ' + currentUser.username;
+            userStatus.className = 'show';
+            logoutBtn.style.display = 'inline-block';
+            postNav.style.display = 'inline-block';
+            regNav.style.display = 'none';
+            loginNav.style.display = 'none';
+        } else {
+            userStatus.className = '';
+            logoutBtn.style.display = 'none';
+            postNav.style.display = 'none';
+            regNav.style.display = 'inline-block';
+            loginNav.style.display = 'inline-block';
+        }
+    }
+
+    // ================================================================
+    // AUTH
+    // ================================================================
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = e.target.querySelector('button');
+        btn.disabled = true;
+        btn.textContent = 'Registering...';
+        try {
+            const res = await fetch(API_BASE + '/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: document.getElementById('regUsername').value.trim(),
+                    password: document.getElementById('regPassword').value,
+                    fullName: document.getElementById('regFullName').value.trim(),
+                    location: document.getElementById('regLocation').value.trim(),
+                    phone: document.getElementById('regPhone').value.trim(),
+                    email: document.getElementById('regEmail').value.trim()
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showAlert('✅ Registration successful! Please login.', 'success');
+                e.target.reset();
+                setTimeout(() => showSection('login'), 1000);
+            } else {
+                showAlert('❌ ' + (data.message || 'Registration failed'), 'error');
+            }
+        } catch (err) {
+            showAlert('❌ Network error', 'error');
+        }
+        btn.disabled = false;
+        btn.textContent = 'Create Account';
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = e.target.querySelector('button');
+        btn.disabled = true;
+        btn.textContent = 'Logging in...';
+        try {
+            const res = await fetch(API_BASE + '/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: document.getElementById('loginUsername').value.trim(),
+                    password: document.getElementById('loginPassword').value
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                currentUser = data.user;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                updateUserUI();
+                showAlert('✅ Welcome back!', 'success');
+                e.target.reset();
+                showSection('home');
+            } else {
+                showAlert('❌ ' + (data.message || 'Login failed'), 'error');
+            }
+        } catch (err) {
+            showAlert('❌ Network error. Is the server running?', 'error');
+        }
+        btn.disabled = false;
+        btn.textContent = 'Login';
+    });
+
+    function logout() {
+        currentUser = null;
+        localStorage.removeItem('currentUser');
+        updateUserUI();
+        showAlert('👋 Logged out', 'info');
+        showSection('home');
+    }
+
+    // ================================================================
+    // IMAGE PREVIEW
+    // ================================================================
+    document.getElementById('prodImage').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const preview = document.getElementById('imagePreview');
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => { preview.src = ev.target.result; preview.style.display = 'block'; };
+            reader.readAsDataURL(file);
+        } else {
+            preview.style.display = 'none';
+        }
+    });
+
+    // ================================================================
+    // POST PRODUCT
+    // ================================================================
+    document.getElementById('productForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!currentUser) {
+            showAlert('⚠️ Please login first', 'error');
+            return;
+        }
+        const title = document.getElementById('prodTitle').value.trim();
+        const price = parseFloat(document.getElementById('prodPrice').value);
+        if (!title || isNaN(price)) {
+            showAlert('Title and valid price are required', 'error');
+            return;
+        }
+
+        let imageData = null;
+        const fileInput = document.getElementById('prodImage');
+        if (fileInput.files && fileInput.files[0]) {
+            imageData = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = (ev) => resolve(ev.target.result);
+                reader.readAsDataURL(fileInput.files[0]);
+            });
+        }
+
+        const btn = e.target.querySelector('button');
+        btn.disabled = true;
+        btn.textContent = 'Posting...';
+
+        try {
+            const res = await fetch(API_BASE + '/products', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title,
+                    description: document.getElementById('prodDescription').value.trim(),
+                    price,
+                    quantity: document.getElementById('prodQuantity').value.trim(),
+                    category: document.getElementById('prodCategory').value,
+                    location: document.getElementById('prodLocation').value.trim(),
+                    sellerId: currentUser.id,
+                    image: imageData
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showAlert('✅ Product posted!', 'success');
+                e.target.reset();
+                document.getElementById('imagePreview').style.display = 'none';
+                setTimeout(() => { loadProducts(); showSection('browse'); }, 500);
+            } else {
+                showAlert('❌ ' + (data.message || 'Failed'), 'error');
+            }
+        } catch (err) {
+            showAlert('❌ Network error', 'error');
+        }
+        btn.disabled = false;
+        btn.textContent = 'Post Product';
+    });
+
+    // ================================================================
+    // PRODUCTS
+    // ================================================================
+    async function loadProducts() {
+        const container = document.getElementById('productList');
+        container.innerHTML = '<p style="grid-column:1/-1; text-align:center; padding:2rem; color:#666;">Loading products...</p>';
+        try {
+            const res = await fetch(API_BASE + '/products');
+            const data = await res.json();
+            if (data.success && data.products) {
+                allProducts = data.products;
+                renderProducts(allProducts);
+            } else {
+                container.innerHTML = '<p style="grid-column:1/-1; text-align:center; padding:2rem; color:#666;">No products found</p>';
+            }
+        } catch (err) {
+            console.error('Error loading products:', err);
+            container.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:#c0392b;">Failed to load products</p>';
+        }
+    }
+
+    function renderProducts(products) {
+        const container = document.getElementById('productList');
+        if (!products || products.length === 0) {
+            container.innerHTML = '<p style="grid-column:1/-1; text-align:center; padding:2rem; color:#666;">No products yet. Be the first to post!</p>';
+            return;
+        }
+
+        container.innerHTML = products.map(p => {
+            const imgHtml = p.image && p.image !== 'null'
+                ? `<img class="product-img" src="${p.image}" alt="${escapeHtml(p.title)}">`
+                : `<div class="product-img">🌾</div>`;
+
+            return `
+                <div class="product-card" data-id="${p.id}">
+                    ${imgHtml}
+                    <div class="product-body">
+                        <span class="category">${escapeHtml(p.category || 'General')}</span>
+                        <h3>${escapeHtml(p.title)}</h3>
+                        <p style="color:#555; font-size:0.9rem; flex:1;">${escapeHtml(p.description || 'No description')}</p>
+                        <div class="price">N$ ${Number(p.price).toFixed(2)}</div>
+                        <div style="font-size:0.85rem; color:#666;">📍 ${escapeHtml(p.location || 'Namibia')}</div>
+                        <div style="font-size:0.85rem; color:#666;">👤 ${escapeHtml(p.full_name || p.username || 'Farmer')}</div>
+                        ${p.quantity ? `<div style="font-size:0.85rem; color:#555;">📦 ${escapeHtml(p.quantity)}</div>` : ''}
+                        
+                        <button class="contact-btn" onclick="contactSeller('${escapeHtml(p.phone || '')}', '${escapeHtml(p.full_name || p.username || '')}')">
+                            📩 Contact Seller
+                        </button>
+                        
+                        <button class="comment-btn" onclick="toggleComments(${p.id})">💬 Comments</button>
+                        
+                        <div class="comments-box" id="comments-${p.id}">
+                            <div id="comment-list-${p.id}"><p style="font-size:0.85rem; color:#888;">Loading comments...</p></div>
+                            <div class="comment-form">
+                                <input type="text" id="comment-input-${p.id}" placeholder="Write a comment...">
+                                <button type="button" onclick="postComment(${p.id})">Post</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // ================================================================
+    // COMMENTS
+    // ================================================================
+    async function toggleComments(productId) {
+        const box = document.getElementById('comments-' + productId);
+        if (!box) return;
+
+        const isOpen = box.classList.contains('open');
+        if (!isOpen) {
+            const list = document.getElementById('comment-list-' + productId);
+            list.innerHTML = '<p style="font-size:0.85rem; color:#888;">Loading...</p>';
+            try {
+                const res = await fetch(API_BASE + '/products/' + productId + '/comments');
+                const data = await res.json();
+                if (data.success) {
+                    const comments = data.comments || [];
+                    if (comments.length === 0) {
+                        list.innerHTML = '<p style="font-size:0.85rem; color:#888;">No comments yet. Be the first!</p>';
+                    } else {
+                        list.innerHTML = comments.map(c => `
+                            <div class="comment-item">
+                                <strong>${escapeHtml(c.full_name || c.username || 'User')}</strong>
+                                <span style="color:#888; font-size:0.78rem;"> · ${new Date(c.created_at || Date.now()).toLocaleDateString()}</span>
+                                <div>${escapeHtml(c.comment)}</div>
+                            </div>
+                        `).join('');
+                    }
+                } else {
+                    list.innerHTML = '<p style="color:#c0392b;">Failed to load comments</p>';
+                }
+            } catch (err) {
+                list.innerHTML = '<p style="color:#c0392b;">Error loading comments</p>';
+            }
+        }
+        box.classList.toggle('open');
+    }
+
+    async function postComment(productId) {
+        if (!currentUser) {
+            showAlert('⚠️ Please login to comment', 'error');
+            showSection('login');
+            return;
+        }
+
+        const input = document.getElementById('comment-input-' + productId);
+        const text = input.value.trim();
+        if (!text) {
+            showAlert('Please write a comment', 'error');
+            return;
+        }
+
+        try {
+            const res = await fetch(API_BASE + '/products/' + productId + '/comments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: currentUser.id, comment: text })
+            });
+            const data = await res.json();
+            if (data.success) {
+                input.value = '';
+                showAlert('✅ Comment posted!', 'success');
+                const box = document.getElementById('comments-' + productId);
+                if (box) { box.classList.remove('open'); await toggleComments(productId); }
+            } else {
+                showAlert('❌ ' + (data.message || 'Failed to post comment'), 'error');
+            }
+        } catch (err) {
+            showAlert('❌ Network error while posting comment', 'error');
+        }
+    }
+
+    function contactSeller(phone, name) {
+        if (phone) {
+            if (confirm('Contact ' + name + '\nPhone: ' + phone + '\n\nOpen WhatsApp?')) {
+                window.open('https://wa.me/' + phone.replace(/[^0-9]/g, ''), '_blank');
+            }
+        } else {
+            alert('No phone number provided for this seller.');
+        }
+    }
+
+    async function loadCommunityComments(postId) {
+    const list = document.getElementById('community-comment-list-' + postId);
+    list.innerHTML = '<p style="font-size:0.85rem; color:#888;">Loading comments...</p>';
+    try {
+        const res = await fetch(API_BASE + '/community/posts/' + postId + '/comments');
+        const data = await res.json();
+        if (data.success && data.comments) {
+            if (data.comments.length === 0) {
+                list.innerHTML = '<p style="font-size:0.85rem; color:#888;">No comments yet. Be the first!</p>';
+            } else {
+                list.innerHTML = data.comments.map(c => `
+                    <div style="background:#f6faf6; padding:0.5rem 0.75rem; border-radius:8px; margin-bottom:0.45rem; font-size:0.88rem;" data-comment-id="${c.id}">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.3rem;">
+                            <div style="flex:1;">
+                                <strong>${escapeHtml(c.author)}</strong>
+                                <span style="color:#888; font-size:0.78rem;"> · ${new Date(c.created_at).toLocaleDateString()}</span>
+                                <div>${escapeHtml(c.comment)}</div>
+                            </div>
+                            <div style="display:flex; gap:0.3rem; align-items:center;">
+                                <button onclick="likeCommunityComment(${c.id})" style="background:none; border:none; cursor:pointer; font-size:0.85rem; padding:0.2rem 0.4rem; border-radius:4px;">
+                                    👍 <span id="comment-likes-${c.id}">${c.likes || 0}</span>
+                                </button>
+                                <button onclick="dislikeCommunityComment(${c.id})" style="background:none; border:none; cursor:pointer; font-size:0.85rem; padding:0.2rem 0.4rem; border-radius:4px;">
+                                    👎 <span id="comment-dislikes-${c.id}">${c.dislikes || 0}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+    } catch (err) {
+        list.innerHTML = '<p style="color:#c0392b;">Failed to load comments</p>';
+    }
+}
+
+    // ================================================================
+    // SEARCH & FILTER
+    // ================================================================
+    document.getElementById('searchInput').addEventListener('input', filterProducts);
+    document.getElementById('categoryFilter').addEventListener('change', filterProducts);
+
+    function filterProducts() {
+        const search = document.getElementById('searchInput').value.toLowerCase().trim();
+        const category = document.getElementById('categoryFilter').value;
+
+        let filtered = allProducts;
+        if (search) {
+            filtered = filtered.filter(p =>
+                (p.title || '').toLowerCase().includes(search) ||
+                (p.description || '').toLowerCase().includes(search) ||
+                (p.full_name || '').toLowerCase().includes(search) ||
+                (p.username || '').toLowerCase().includes(search) ||
+                (p.location || '').toLowerCase().includes(search)
+            );
+        }
+        if (category) {
+            filtered = filtered.filter(p => p.category === category);
+        }
+        renderProducts(filtered);
+    }
+
+    // ================================================================
+    // COMMUNITY
+    // ================================================================
+    document.getElementById('communityForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        if (!currentUser) {
+            showAlert('⚠️ Please login to post in Community', 'error');
+            showSection('login');
+            return;
+        }
+
+        const title = document.getElementById('commTitle').value.trim();
+        const body = document.getElementById('commBody').value.trim();
+
+        if (!title || !body) {
+            showAlert('Title and message are required', 'error');
+            return;
+        }
+
+        const btn = e.target.querySelector('button');
+        btn.disabled = true;
+        btn.textContent = 'Posting...';
+
+        try {
+            const res = await fetch(API_BASE + '/community/posts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: title,
+                    content: body,
+                    author: currentUser.fullName || currentUser.username
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                e.target.reset();
+                showAlert('✅ Posted to Farmers Community!', 'success');
+                loadCommunity();
+            } else {
+                showAlert('❌ ' + (data.message || 'Failed to post'), 'error');
+            }
+        } catch (err) {
+            showAlert('❌ Network error while posting', 'error');
+        }
+        btn.disabled = false;
+        btn.textContent = '📢 Post to Community';
+    });
+
+    async function loadCommunity() {
+        const list = document.getElementById('communityList');
+        list.innerHTML = '<p style="text-align:center; color:#666; padding:1.5rem;">Loading...</p>';
+        try {
+            const res = await fetch(API_BASE + '/community/posts');
+            const data = await res.json();
+            const posts = (data.success && data.posts) ? data.posts : [];
+
+            if (posts.length === 0) {
+                list.innerHTML = '<p style="text-align:center; color:#666; padding:1.5rem;">No posts yet. Share the first update!</p>';
+                return;
+            }
+
+            list.innerHTML = posts.map(p => `
+                <div class="community-post" data-post-id="${p.id}">
+                    <h4 style="color:#1b4332; margin-bottom:0.3rem;">${escapeHtml(p.title)}</h4>
+                    <div style="font-size:0.8rem; color:#777; margin-bottom:0.5rem;">
+                        👤 ${escapeHtml(p.author)} · ${new Date(p.created_at).toLocaleString()}
+                    </div>
+                    <p style="white-space:pre-wrap;">${escapeHtml(p.content)}</p>
+                    <div style="margin-top:0.8rem; display:flex; gap:1rem; flex-wrap:wrap; align-items:center;">
+                        <button onclick="likePost(${p.id})" style="background:none; border:1px solid #2d6a4f; padding:0.2rem 0.8rem; border-radius:20px; cursor:pointer; color:#2d6a4f;">
+                            ❤️ <span id="post-like-${p.id}">${p.likes || 0}</span>
+                        </button>
+                        <button onclick="toggleCommunityComments(${p.id})" style="background:none; border:1px solid #2d6a4f; padding:0.2rem 0.8rem; border-radius:20px; cursor:pointer; color:#2d6a4f;">
+                            💬 <span id="post-comment-count-${p.id}">${p.comment_count || 0}</span> Comments
+                        </button>
+                    </div>
+                    <div id="community-comments-${p.id}" style="display:none; margin-top:1rem; padding-top:1rem; border-top:1px solid #eee;">
+                        <div id="community-comment-list-${p.id}"><p style="font-size:0.85rem; color:#888;">Loading comments...</p></div>
+                        <div style="display:flex; gap:0.5rem; margin-top:0.8rem;">
+                            <input type="text" id="community-comment-input-${p.id}" placeholder="Write a comment..." style="flex:1; padding:0.5rem 0.75rem; border:1.5px solid #d4edda; border-radius:8px;">
+                            <button onclick="postCommunityComment(${p.id})" style="background:#2d6a4f; color:white; border:none; padding:0.5rem 1rem; border-radius:8px; cursor:pointer;">Post</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        } catch (err) {
+            list.innerHTML = '<p style="color:#c0392b;">Failed to load community</p>';
+        }
+    }
+
+    async function likePost(postId) {
+        if (!currentUser) {
+            showAlert('⚠️ Please login to like', 'error');
+            showSection('login');
+            return;
+        }
+        try {
+            const res = await fetch(API_BASE + '/community/posts/' + postId + '/like', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const data = await res.json();
+            if (data.success) {
+                const likeSpan = document.getElementById('post-like-' + postId);
+                if (likeSpan) likeSpan.textContent = parseInt(likeSpan.textContent) + 1;
+                showAlert('❤️ Liked!', 'success');
+            }
+        } catch (err) {
+            showAlert('❌ Error liking post', 'error');
+        }
+    }
+
+    async function toggleCommunityComments(postId) {
+        const box = document.getElementById('community-comments-' + postId);
+        if (!box) return;
+        if (box.style.display === 'none' || !box.style.display) {
+            box.style.display = 'block';
+            await loadCommunityComments(postId);
+        } else {
+            box.style.display = 'none';
+        }
+    }
+
+   // ================================================================
+// LOAD COMMUNITY COMMENTS - WITH LIKE & DISLIKE
+// ================================================================
+async function loadCommunityComments(postId) {
+    const list = document.getElementById('community-comment-list-' + postId);
+    list.innerHTML = '<p style="font-size:0.85rem; color:#888;">Loading comments...</p>';
+    try {
+        const res = await fetch(API_BASE + '/community/posts/' + postId + '/comments');
+        const data = await res.json();
+        if (data.success && data.comments) {
+            if (data.comments.length === 0) {
+                list.innerHTML = '<p style="font-size:0.85rem; color:#888;">No comments yet. Be the first!</p>';
+            } else {
+                list.innerHTML = data.comments.map(c => `
+                    <div style="background:#f6faf6; padding:0.5rem 0.75rem; border-radius:8px; margin-bottom:0.45rem; font-size:0.88rem;" data-comment-id="${c.id}">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.3rem;">
+                            <div style="flex:1;">
+                                <strong>${escapeHtml(c.author)}</strong>
+                                <span style="color:#888; font-size:0.78rem;"> · ${new Date(c.created_at).toLocaleDateString()}</span>
+                                <div>${escapeHtml(c.comment)}</div>
+                            </div>
+                            <div style="display:flex; gap:0.3rem; align-items:center; flex-wrap:wrap;">
+                                <button onclick="likeCommunityComment(${c.id})" style="background:none; border:none; cursor:pointer; font-size:0.85rem; padding:0.2rem 0.4rem; border-radius:4px; transition:all 0.2s;" 
+                                        onmouseover="this.style.background='#d4edda'" onmouseout="this.style.background='none'">
+                                    👍 <span id="comment-likes-${c.id}">${c.likes || 0}</span>
+                                </button>
+                                <button onclick="dislikeCommunityComment(${c.id})" style="background:none; border:none; cursor:pointer; font-size:0.85rem; padding:0.2rem 0.4rem; border-radius:4px; transition:all 0.2s;"
+                                        onmouseover="this.style.background='#f8d7da'" onmouseout="this.style.background='none'">
+                                    👎 <span id="comment-dislikes-${c.id}">${c.dislikes || 0}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+    } catch (err) {
+        list.innerHTML = '<p style="color:#c0392b;">Failed to load comments</p>';
+    }
+}
+    async function postCommunityComment(postId) {
+        if (!currentUser) {
+            showAlert('⚠️ Please login to comment', 'error');
+            showSection('login');
+            return;
+        }
+        const input = document.getElementById('community-comment-input-' + postId);
+        const comment = input.value.trim();
+        if (!comment) {
+            showAlert('Please write a comment', 'error');
+            return;
+        }
+        try {
+            const res = await fetch(API_BASE + '/community/posts/' + postId + '/comments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ author: currentUser.fullName || currentUser.username, comment: comment })
+            });
+            const data = await res.json();
+            if (data.success) {
+                input.value = '';
+                showAlert('✅ Comment posted!', 'success');
+                await loadCommunityComments(postId);
+                const countSpan = document.getElementById('post-comment-count-' + postId);
+                if (countSpan) countSpan.textContent = parseInt(countSpan.textContent) + 1;
+            } else {
+                showAlert('❌ ' + (data.message || 'Failed to post comment'), 'error');
+            }
+        } catch (err) {
+            showAlert('❌ Error posting comment', 'error');
+        }
+    }
+
+    // ================================================================
+// LIKE COMMUNITY COMMENT
+// ================================================================
+async function likeCommunityComment(commentId) {
+    if (!currentUser) {
+        showAlert('⚠️ Please login to like', 'error');
+        showSection('login');
+        return;
+    }
+    try {
+        const res = await fetch(API_BASE + '/community/comments/' + commentId + '/like', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        if (data.success) {
+            const likeSpan = document.getElementById('comment-likes-' + commentId);
+            if (likeSpan) likeSpan.textContent = parseInt(likeSpan.textContent) + 1;
+            showAlert('👍 Liked!', 'success');
+        } else {
+            showAlert('❌ ' + data.message, 'error');
+        }
+    } catch (err) {
+        console.error('❌ Error liking comment:', err);
+        showAlert('❌ Error liking comment', 'error');
+    }
+}
+
+// ================================================================
+// DISLIKE COMMUNITY COMMENT
+// ================================================================
+async function dislikeCommunityComment(commentId) {
+    if (!currentUser) {
+        showAlert('⚠️ Please login to dislike', 'error');
+        showSection('login');
+        return;
+    }
+    try {
+        const res = await fetch(API_BASE + '/community/comments/' + commentId + '/dislike', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await res.json();
+        if (data.success) {
+            const dislikeSpan = document.getElementById('comment-dislikes-' + commentId);
+            if (dislikeSpan) dislikeSpan.textContent = parseInt(dislikeSpan.textContent) + 1;
+            showAlert('👎 Disliked!', 'info');
+        } else {
+            showAlert('❌ ' + data.message, 'error');
+        }
+    } catch (err) {
+        console.error('❌ Error disliking comment:', err);
+        showAlert('❌ Error disliking comment', 'error');
+    }
+}
+
+// ================================================================
+// LOAD COMMUNITY COMMENTS - WITH LIKE & DISLIKE
+// ================================================================
+async function loadCommunityComments(postId) {
+    const list = document.getElementById('community-comment-list-' + postId);
+    list.innerHTML = '<p style="font-size:0.85rem; color:#888;">Loading comments...</p>';
+    try {
+        const res = await fetch(API_BASE + '/community/posts/' + postId + '/comments');
+        const data = await res.json();
+        if (data.success && data.comments) {
+            if (data.comments.length === 0) {
+                list.innerHTML = '<p style="font-size:0.85rem; color:#888;">No comments yet. Be the first!</p>';
+            } else {
+                list.innerHTML = data.comments.map(c => `
+                    <div style="background:#f6faf6; padding:0.5rem 0.75rem; border-radius:8px; margin-bottom:0.45rem; font-size:0.88rem;" data-comment-id="${c.id}">
+                        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.3rem;">
+                            <div style="flex:1;">
+                                <strong>${escapeHtml(c.author)}</strong>
+                                <span style="color:#888; font-size:0.78rem;"> · ${new Date(c.created_at).toLocaleDateString()}</span>
+                                <div>${escapeHtml(c.comment)}</div>
+                            </div>
+                            <div style="display:flex; gap:0.3rem; align-items:center; flex-wrap:wrap;">
+                                <button onclick="likeCommunityComment(${c.id})" style="background:none; border:none; cursor:pointer; font-size:0.85rem; padding:0.2rem 0.4rem; border-radius:4px; transition:all 0.2s;" 
+                                        onmouseover="this.style.background='#d4edda'" onmouseout="this.style.background='none'">
+                                    👍 <span id="comment-likes-${c.id}">${c.likes || 0}</span>
+                                </button>
+                                <button onclick="dislikeCommunityComment(${c.id})" style="background:none; border:none; cursor:pointer; font-size:0.85rem; padding:0.2rem 0.4rem; border-radius:4px; transition:all 0.2s;"
+                                        onmouseover="this.style.background='#f8d7da'" onmouseout="this.style.background='none'">
+                                    👎 <span id="comment-dislikes-${c.id}">${c.dislikes || 0}</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+    } catch (err) {
+        list.innerHTML = '<p style="color:#c0392b;">Failed to load comments</p>';
+    }
+}
+    // ================================================================
+    // WEATHER
+    // ================================================================
+    async function loadWeather() {
+        const container = document.getElementById('weatherList');
+        container.innerHTML = '<p style="grid-column:1/-1; text-align:center; padding:2rem; color:#666;">Loading weather data...</p>';
+        try {
+            const res = await fetch(API_BASE + '/weather');
+            const data = await res.json();
+            if (data.success && data.weather) {
+                container.innerHTML = data.weather.map(w => `
+                    <div class="info-card">
+                        <h4>📍 ${w.region}</h4>
+                        <p>${w.forecast}</p>
+                        <p>🌡️ ${w.temperature}</p>
+                        <p>💧 ${w.rainfall}</p>
+                    </div>
+                `).join('');
+            }
+        } catch (err) {
+            container.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:#c0392b;">Failed to load weather</p>';
+        }
+    }
+
+    // ================================================================
+    // MARKET PRICES - HYBRID SYSTEM
+    // ================================================================
+    async function loadMarket() {
+        const container = document.getElementById('marketList');
+        container.innerHTML = '<p style="grid-column:1/-1; text-align:center; padding:2rem; color:#666;">Loading market prices...</p>';
+        try {
+            const res = await fetch(API_BASE + '/market');
+            const data = await res.json();
+            if (data.success && data.marketPrices) {
+                // Group by market
+                const grouped = {};
+                data.marketPrices.forEach(p => {
+                    if (!grouped[p.market]) grouped[p.market] = [];
+                    grouped[p.market].push(p);
+                });
+
+                container.innerHTML = Object.keys(grouped).map(market => `
+                    <div class="market-group">
+                        <h3>📍 ${market}</h3>
+                        <div class="market-items">
+                            ${grouped[market].map(p => `
+                                <div class="info-card" style="border-left-color: ${p.source === 'admin' ? '#e67e22' : '#2d6a4f'};">
+                                    <h4>${p.product}</h4>
+                                    <p style="font-size:1.15rem; color:#2d6a4f; font-weight:700;">${p.price}</p>
+                                    <p style="color:#888; font-size:0.8rem;">${p.unit || ''}</p>
+                                    <p style="color:#888; font-size:0.7rem; margin-top:0.2rem;">
+                                        <span class="source-badge ${p.source === 'admin' ? 'source-admin' : 'source-auto'}">
+                                            ${p.source === 'admin' ? '👑 Admin' : '🤖 Auto'}
+                                        </span>
+                                        · ${new Date(p.updated_at).toLocaleDateString()}
+                                    </p>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:#666;">No market prices available</p>';
+            }
+        } catch (err) {
+            container.innerHTML = '<p style="grid-column:1/-1; text-align:center; color:#c0392b;">Failed to load market prices</p>';
+        }
+    }
+
+    // ================================================================
+    // FLASH MESSAGES
+    // ================================================================
+    const flashes = [
+        '🌾 Fresh produce available this week across Namibia!',
+        '🐄 Livestock market is active – check Browse!',
+        '☀️ Weather updates help you plan planting',
+        '💰 Know the latest prices before you sell',
+        '👥 Share your farming tips in the Community'
+    ];
+    let fi = 0;
+    setInterval(() => {
+        fi = (fi + 1) % flashes.length;
+        document.getElementById('flashText').textContent = flashes[fi];
+    }, 4000);
+
+    // ================================================================
+    // INIT
+    // ================================================================
+    const saved = localStorage.getItem('currentUser');
+    if (saved) {
+        try { currentUser = JSON.parse(saved); } catch (e) { localStorage.removeItem('currentUser'); }
+    }
+    updateUserUI();
+    showSection('home');
+
+    console.log('🌾 AgriConnect Namibia loaded successfully!');
+    console.log('👤 User:', currentUser ? currentUser.username : 'Not logged in');
+</script>
+</body>
+</html>
