@@ -1,0 +1,76 @@
+const express = require('express');
+const router = express.Router();
+const db = require('../middleware/database');
+
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+
+function requireAdmin(req, res, next) {
+  const key = req.headers['x-admin-key'] || req.query.key || req.body?.adminKey;
+  if (key !== ADMIN_PASSWORD) {
+    return res.status(401).json({ success: false, message: 'Unauthorized' });
+  }
+  next();
+}
+
+router.get('/admin/stats', requireAdmin, (req, res) => {
+  try {
+    res.json({
+      success: true,
+      stats: {
+        totalUsers: db.prepare('SELECT COUNT(*) as n FROM users').get().n,
+        totalProducts: db.prepare('SELECT COUNT(*) as n FROM products').get().n,
+        totalCommunityPosts: db.prepare('SELECT COUNT(*) as n FROM community').get().n,
+        totalComments: db.prepare('SELECT COUNT(*) as n FROM comments').get().n +
+          db.prepare('SELECT COUNT(*) as n FROM community_comments').get().n
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Stats failed' });
+  }
+});
+
+router.get('/admin/users', requireAdmin, (req, res) => {
+  const users = db.prepare('SELECT id, username, fullName, location, phone, email, created_at FROM users ORDER BY id DESC').all();
+  res.json({ success: true, users });
+});
+
+router.delete('/admin/users/:id', requireAdmin, (req, res) => {
+  const r = db.prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
+  if (!r.changes) return res.status(404).json({ success: false, message: 'Not found' });
+  res.json({ success: true, message: 'User deleted' });
+});
+
+router.get('/admin/products', requireAdmin, (req, res) => {
+  res.json({ success: true, products: db.prepare('SELECT * FROM products ORDER BY id DESC').all() });
+});
+
+router.delete('/admin/products/:id', requireAdmin, (req, res) => {
+  const r = db.prepare('DELETE FROM products WHERE id = ?').run(req.params.id);
+  if (!r.changes) return res.status(404).json({ success: false, message: 'Not found' });
+  res.json({ success: true, message: 'Product deleted' });
+});
+
+router.get('/admin/community', requireAdmin, (req, res) => {
+  res.json({ success: true, posts: db.prepare('SELECT * FROM community ORDER BY id DESC').all() });
+});
+
+router.delete('/admin/community/:id', requireAdmin, (req, res) => {
+  const r = db.prepare('DELETE FROM community WHERE id = ?').run(req.params.id);
+  if (!r.changes) return res.status(404).json({ success: false, message: 'Not found' });
+  res.json({ success: true, message: 'Post deleted' });
+});
+
+router.get('/admin/comments', requireAdmin, (req, res) => {
+  const productComments = db.prepare('SELECT *, "product" as source FROM comments ORDER BY id DESC').all();
+  const communityComments = db.prepare('SELECT *, "community" as source FROM community_comments ORDER BY id DESC').all();
+  res.json({ success: true, comments: [...productComments, ...communityComments] });
+});
+
+router.delete('/admin/comments/:id', requireAdmin, (req, res) => {
+  let r = db.prepare('DELETE FROM comments WHERE id = ?').run(req.params.id);
+  if (!r.changes) r = db.prepare('DELETE FROM community_comments WHERE id = ?').run(req.params.id);
+  if (!r.changes) return res.status(404).json({ success: false, message: 'Not found' });
+  res.json({ success: true, message: 'Comment deleted' });
+});
+
+module.exports = router;

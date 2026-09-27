@@ -1,0 +1,14 @@
+node_modules/
+database/
+database/*.db
+.env
+*.log
+.DS_Store
+public/uploads/*
+!public/uploads/.gitkeep
+build/
+.gradle/
+.idea/
+*.apk
+*.iml
+*.hprof
