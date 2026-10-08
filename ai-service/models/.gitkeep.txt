@@ -1,0 +1,3 @@
+# Drop trained .pkl models here to enable ML mode:
+#   soil_model.pkl  — scikit-learn regressor / classifier
+#   virus_model.pkl — image classifier

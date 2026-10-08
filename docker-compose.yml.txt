@@ -1,0 +1,39 @@
+
+### `docker-compose.yml`
+```yaml
+version: "3.9"
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: namagriconnect
+      POSTGRES_USER: namagri
+      POSTGRES_PASSWORD: namagri_pass
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/schema.sql:/docker-entrypoint-initdb.d/1-schema.sql
+      - ./backend/seed.sql:/docker-entrypoint-initdb.d/2-seed.sql
+
+  backend:
+    build: ./backend
+    ports: ["4000:4000"]
+    environment:
+      DATABASE_URL: postgres://namagri:namagri_pass@postgres:5432/namagriconnect
+      AI_SERVICE_URL: http://ai-service:5000
+      PORT: 4000
+    depends_on: [postgres, ai-service]
+
+  ai-service:
+    build: ./ai-service
+    ports: ["5000:5000"]
+    depends_on: [postgres]
+
+  frontend:
+    image: nginx:alpine
+    ports: ["3000:80"]
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+
+volumes:
+  pgdata:

@@ -1,0 +1,15 @@
+[data-theme="dark"]{
+  --green:#4ade80; --green-2:#22c55e; --gold:#fbbf24;
+  --bg:#0a0f0c; --card:#131a15; --ink:#e8f5ec; --muted:#8ba394;
+  --border:#1f2c23; --shadow:0 6px 24px rgba(0,0,0,.4);
+  --header-grad:linear-gradient(135deg,#0d3d24 0%,#0b6b3a 100%);
+}
+[data-theme="dark"] .listing .photos{background:linear-gradient(135deg,#134e2e,#0d3d24)}
+[data-theme="dark"] .ticker{background:#000;color:#fbbf24}
+[data-theme="dark"] .badge.ok{background:rgba(39,174,96,.15);color:#4ade80}
+[data-theme="dark"] .badge.warn{background:rgba(230,126,34,.15);color:#fbbf24}
+[data-theme="dark"] .badge.danger{background:rgba(192,57,43,.2);color:#f87171}
+[data-theme="dark"] .badge.info{background:rgba(41,128,185,.15);color:#60a5fa}
+[data-theme="dark"] .badge.gold{background:rgba(232,183,58,.15);color:#fbbf24}
+[data-theme="dark"] .scan-box{background:#0f1712;border-color:#2a4232}
+[data-theme="dark"] input,[data-theme="dark"] select,[data-theme="dark"] textarea{background:#0f1712;color:var(--ink)}

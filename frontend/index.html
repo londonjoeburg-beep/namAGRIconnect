@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#0b6b3a" />
+<title>NamAgriConnect — Namibia All-in-One Agri Platform</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌾</text></svg>">
+<link rel="manifest" href="manifest.json" />
+<link rel="stylesheet" href="css/main.css" />
+<link rel="stylesheet" href="css/dark.css" />
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="logo">🌾 NamAgriConnect <span>NAMIBIA</span></div>
+    <div class="header-actions">
+      <button class="icon-btn" id="themeToggle" title="Toggle dark mode">🌙</button>
+      <select class="lang" id="lang" onchange="setLang(this.value)">
+        <option value="en">🇬🇧 EN</option>
+        <option value="osh">🇳🇦 Oshiwambo</option>
+        <option value="afr">🇿🇦 Afrikaans</option>
+        <option value="her">🇳🇦 Otjiherero</option>
+        <option value="kho">🇳🇦 Khoekhoegowab</option>
+        <option value="siz">🇳🇦 Silozi</option>
+      </select>
+      <button class="icon-btn" id="authBtn" data-i18n="login" onclick="openAuth('login')">🔐 Login</button>
+      <button class="icon-btn" id="myFarmBtn" data-i18n="myFarm" onclick="goTo('profile')" style="display:none">👤 My Farm</button>
+      <button class="icon-btn" data-i18n="sell" onclick="requireLogin('post a listing') && goTo('sell')">➕ Sell</button>
+    </div>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" data-page="market" data-i18n="tab_market">🛒 Market</button>
+  <button class="tab" data-page="sell" data-i18n="tab_sell">📸 Post Listing</button>
+  <button class="tab" data-page="soil" data-i18n="tab_soil">🧪 Soil & NPK AI</button>
+  <button class="tab" data-page="virus" data-i18n="tab_virus">🦠 Virus Scanner</button>
+  <button class="tab" data-page="water" data-i18n="tab_water">💧 Water & Drip</button>
+  <button class="tab" data-page="weather" data-i18n="tab_weather">🌦️ Agro-Weather</button>
+  <button class="tab" data-page="rfq" data-i18n="tab_rfq">📢 RFQs & Ticker</button>
+  <button class="tab" data-page="community" data-i18n="tab_talk">💬 Agri-Talk</button>
+  <button class="tab" data-page="ussd" data-i18n="tab_ussd">📱 USSD Gateway</button>
+  <button class="tab" data-page="profile" data-i18n="tab_profile">👤 My Farm</button>
+</nav>
+
+<main>
+
+<section class="page active" id="page-market">
+  <h2 class="section-title" data-i18n="market_title">🛒 Live Marketplace</h2>
+  <p class="section-sub" data-i18n="market_sub">Buy & sell directly.</p>
+  <div class="ticker"><div class="ticker-track" id="tickerTrack"></div></div>
+  <div class="grid cols-3" id="statsRow">
+    <div class="stat"><div class="num" id="statListings">0</div><div class="lbl" data-i18n="stat_listings">Active Listings</div></div>
+    <div class="stat"><div class="num" id="statFarmers">0</div><div class="lbl" data-i18n="stat_farmers">Registered Farmers</div></div>
+    <div class="stat"><div class="num" id="statTrades">0</div><div class="lbl" data-i18n="stat_trades">Trades This Month</div></div>
+  </div>
+  <div style="display:flex;gap:8px;margin:14px 0;flex-wrap:wrap">
+    <input type="text" id="searchBox" data-i18n-ph="search_ph" placeholder="🔍 Search..." oninput="renderListings()" style="flex:1;min-width:200px">
+    <select id="filterCat" onchange="renderListings()" style="max-width:180px">
+      <option value="" data-i18n="filter_allCats">All Categories</option>
+      <option>Crops & Horticulture</option><option>Livestock</option>
+      <option>Inputs & Seeds</option><option>Machinery Rental</option>
+      <option>Biomass / Charcoal</option>
+    </select>
+    <select id="filterRegion" onchange="renderListings()" style="max-width:180px">
+      <option value="" data-i18n="filter_allRegions">All Regions</option>
+      <option>Khomas</option><option>Otjozondjupa</option><option>Zambezi</option>
+      <option>Erongo</option><option>Oshana</option><option>Kavango East</option>
+      <option>Kavango West</option><option>Omusati</option><option>Omaheke</option>
+      <option>Hardap</option><option>//Karas</option><option>Ohangwena</option>
+      <option>Oshikoto</option><option>Kunene</option>
+    </select>
+  </div>
+  <div class="grid cols-3" id="listingsGrid"></div>
+</section>
+
+<section class="page" id="page-sell">
+  <h2 class="section-title" data-i18n="sell_title">📸 Post a New Listing</h2>
+  <p class="section-sub" data-i18n="sell_sub">Up to 10 photos.</p>
+  <div class="card">
+    <label data-i18n="lbl_title" data-required="true">Product Title *</label><input type="text" id="newTitle">
+    <label data-i18n="lbl_category" data-required="true">Category *</label>
+    <select id="newCat">
+      <option>Crops & Horticulture</option><option>Livestock</option>
+      <option>Inputs & Seeds</option><option>Machinery Rental</option>
+      <option>Biomass / Charcoal</option>
+    </select>
+    <label data-i18n="lbl_description">Description</label><textarea id="newDesc" rows="3"></textarea>
+    <div class="grid cols-2">
+      <div><label data-i18n="lbl_quantity" data-required="true">Quantity *</label><input type="text" id="newQty"></div>
+      <div><label data-i18n="lbl_unit" data-required="true">Unit *</label>
+        <select id="newUnit"><option>kg</option><option>tons</option><option>bags</option><option>head of cattle</option><option>liters</option><option>units</option></select>
+      </div>
+    </div>
+    <div class="grid cols-2">
+      <div><label data-i18n="lbl_price" data-required="true">Price (N$) *</label><input type="number" id="newPrice"></div>
+      <div><label data-i18n="lbl_pricePer">Price per</label>
+        <select id="newPricePer"><option>per unit</option><option>per kg</option><option>per bag</option><option>per head</option><option>per ton</option></select>
+      </div>
+    </div>
+    <div class="grid cols-2">
+      <div><label data-i18n="lbl_region" data-required="true">Region *</label>
+        <select id="newRegion">
+          <option>Khomas</option><option>Otjozondjupa</option><option>Zambezi</option>
+          <option>Erongo</option><option>Oshana</option><option>Kavango East</option>
+          <option>Kavango West</option><option>Omusati</option><option>Omaheke</option>
+          <option>Hardap</option><option>//Karas</option><option>Ohangwena</option>
+          <option>Oshikoto</option><option>Kunene</option>
+        </select>
+      </div>
+      <div><label data-i18n="lbl_town" data-required="true">Town *</label><input type="text" id="newTown"></div>
+    </div>
+    <label data-i18n="lbl_badge">Compliance Badge</label>
+    <select id="newBadge">
+      <option value="">None</option>
+      <option value="NamLITS Ear Tag">NamLITS Ear Tag</option>
+      <option value="NAB Permit">NAB Permit</option>
+      <option value="Organic Certified">Organic Certified</option>
+    </select>
+    <label data-i18n="lbl_delivery">Delivery</label>
+    <select id="newDelivery">
+      <option>Pickup only</option><option>Delivery available (buyer pays)</option><option>Delivery included</option>
+    </select>
+    <label data-i18n="lbl_photos">📷 Photos (up to 10)</label>
+    <input type="file" id="newPhotos" accept="image/*" multiple>
+    <div id="photoPreview" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"></div>
+    <button class="btn block" style="margin-top:16px" onclick="submitListing()"><span data-i18n="btn_publish">✅ Publish Listing</span></button>
+  </div>
+</section>
+
+<section class="page" id="page-soil">
+  <h2 class="section-title" data-i18n="soil_title">🧪 Soil AI</h2>
+  <p class="section-sub" data-i18n="soil_sub">Powered by NamAgri AI.</p>
+  <div class="card">
+    <div class="scan-box" onclick="runSoilScan()">
+      <div style="font-size:48px">📷</div>
+      <h3 style="margin:8px 0" data-i18n="soil_scan">Tap to Scan Soil</h3>
+    </div>
+    <div style="margin-top:14px">
+      <button class="btn outline small" data-i18n="btn_manual" onclick="openModal('manualSoilModal')">✍️ Enter Readings Manually</button>
+    </div>
+    <div class="scan-result" id="soilResult"></div>
+  </div>
+</section>
+
+<section class="page" id="page-virus">
+  <h2 class="section-title" data-i18n="virus_title">🦠 Virus Scanner</h2>
+  <div class="card">
+    <div class="scan-box" onclick="runVirusScan()">
+      <div style="font-size:48px">🍃</div>
+      <h3 style="margin:8px 0" data-i18n="virus_scan">Tap to Scan Plant</h3>
+    </div>
+    <div class="scan-result" id="virusResult"></div>
+  </div>
+  <div class="card">
+    <h3 style="margin-bottom:10px" data-i18n="virus_alerts">🚨 Regional Outbreak Alerts</h3>
+    <div id="outbreakAlerts"></div>
+  </div>
+</section>
+
+<section class="page" id="page-water">
+  <h2 class="section-title" data-i18n="water_title">💧 Water & Drip</h2>
+  <div class="card">
+    <div class="grid cols-2">
+      <div><label data-i18n="lbl_crop">Crop</label>
+        <select id="wCrop" onchange="calcWater()">
+          <option value="maize">Maize</option><option value="wheat">Wheat</option>
+          <option value="tomato">Tomato</option><option value="onion">Onion</option>
+          <option value="potato">Potato</option><option value="grapes">Grapes</option>
+          <option value="pasture">Pasture / Lucerne</option>
+        </select>
+      </div>
+      <div><label data-i18n="lbl_area">Area (ha)</label><input type="number" id="wArea" value="1" step="0.1" oninput="calcWater()"></div>
+      <div><label data-i18n="lbl_soil">Soil</label>
+        <select id="wSoil" onchange="calcWater()">
+          <option value="sandy">Sandy</option><option value="clay">Clay</option>
+          <option value="loam" selected>Loam</option>
+        </select>
+      </div>
+      <div><label data-i18n="lbl_stage">Stage</label>
+        <select id="wStage" onchange="calcWater()">
+          <option value="0.5">Seedling</option><option value="1" selected>Vegetative</option>
+          <option value="1.2">Flowering</option><option value="0.8">Maturity</option>
+        </select>
+      </div>
+    </div>
+    <div class="scan-result show" id="waterResult" style="margin-top:16px"></div>
+  </div>
+</section>
+
+<section class="page" id="page-weather">
+  <h2 class="section-title" data-i18n="weather_title">🌦️ Agro-Weather</h2>
+  <div class="grid cols-3" id="weatherGrid"></div>
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin-bottom:10px" data-i18n="ndvi_title">🛰️ Satellite NDVI</h3>
+    <div id="ndviBars"></div>
+  </div>
+</section>
+
+<section class="page" id="page-rfq">
+  <h2 class="section-title" data-i18n="rfq_title">📢 RFQs & Ticker</h2>
+  <div class="card">
+    <h3 style="margin-bottom:10px" data-i18n="rfq_sub">Post an RFQ</h3>
+    <label data-i18n="rfq_what">What do you need?</label><input type="text" id="rfqItem">
+    <label data-i18n="rfq_region">Region</label>
+    <select id="rfqRegion">
+      <option>Khomas</option><option>Erongo</option><option>Otjozondjupa</option>
+      <option>Zambezi</option><option>Oshana</option><option>Kavango East</option>
+    </select>
+    <label data-i18n="rfq_budget">Budget (N$)</label><input type="number" id="rfqBudget">
+    <button class="btn block" style="margin-top:12px" onclick="postRFQ()"><span data-i18n="btn_postRFQ">📤 Post RFQ</span></button>
+  </div>
+  <div id="rfqList"></div>
+  <div class="card" style="margin-top:14px">
+    <h3 style="margin-bottom:10px" data-i18n="price_trends">📊 Price Trends</h3>
+    <div id="priceTrends"></div>
+  </div>
+</section>
+
+<section class="page" id="page-community">
+  <h2 class="section-title" data-i18n="talk_title">💬 Agri-Talk</h2>
+  <div class="grid cols-2">
+    <div class="card">
+      <h3 data-i18n="talk_feed">🗣️ Agri-Talk Feed</h3>
+      <div style="margin-top:10px">
+        <textarea id="talkInput" rows="2" data-i18n-ph="talk_ph" placeholder="Share advice..."></textarea>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button class="btn small" data-i18n="btn_post" onclick="postTalk()">Post</button>
+        </div>
+      </div>
+      <div id="talkFeed" style="margin-top:12px"></div>
+    </div>
+    <div class="card">
+      <h3 data-i18n="leaderboard">🏆 Farmer Leaderboard</h3>
+      <div id="leaderboard" style="margin-top:10px"></div>
+      <h3 style="margin-top:16px" data-i18n="emergency">🚨 Emergency Hotlines</h3>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <a class="btn danger small" href="tel:+264811111111">📞 Vet</a>
+        <a class="btn danger small" href="tel:+264811222333">🚒 Veld Fire</a>
+        <a class="btn outline small" href="tel:+264811444555">👮 Stock Theft</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="page" id="page-ussd">
+  <h2 class="section-title" data-i18n="ussd_title">📱 USSD Gateway (*555#)</h2>
+  <p class="section-sub" data-i18n="ussd_sub">Try it here:</p>
+  <div class="card">
+    <pre id="ussdScreen" style="background:#111;color:#0f0;padding:14px;border-radius:10px;font-size:14px;line-height:1.6;white-space:pre-wrap"></pre>
+    <input type="text" id="ussdInput" placeholder="Type your choice (e.g. 1 or 1*2)" style="margin-top:10px">
+    <button class="btn block" style="margin-top:8px" onclick="ussdSend()">Send</button>
+  </div>
+</section>
+
+<section class="page" id="page-profile">
+  <h2 class="section-title" data-i18n="profile_title">👤 My Farm Dashboard</h2>
+  <div class="card" id="profileCard">
+    <p style="color:var(--muted)">Login to see your farm data.</p>
+  </div>
+  <div class="card">
+    <h3 data-i18n="sales_history">📜 Sales History</h3>
+    <div id="salesHistory" style="margin-top:10px"></div>
+  </div>
+</section>
+
+</main>
+
+<div class="bottom-nav">
+  <button class="active" data-page="market"><i>🛒</i><span data-i18n="tab_market">Market</span></button>
+  <button data-page="sell"><i>➕</i><span data-i18n="tab_sell">Sell</span></button>
+  <button data-page="soil"><i>🧪</i><span data-i18n="tab_soil">Soil</span></button>
+  <button data-page="weather"><i>🌦️</i><span data-i18n="tab_weather">Weather</span></button>
+  <button data-page="profile"><i>👤</i><span data-i18n="tab_profile">Me</span></button>
+</div>
+
+<div class="modal" id="authModal">
+  <div class="box">
+    <h3 id="authTitle">🔐 Login</h3>
+    <label>Phone Number *</label>
+    <input type="tel" id="authPhone" placeholder="+264812345678">
+    <div id="registerOnly" style="display:none">
+      <label>Your Name *</label>
+      <input type="text" id="authName" placeholder="e.g. Kambwa Petrus">
+      <label>Region</label>
+      <input type="text" id="authRegion" placeholder="e.g. Kavango East">
+      <label>Town</label>
+      <input type="text" id="authTown" placeholder="e.g. Rundu">
+    </div>
+    <label>Password * (min 6 chars)</label>
+    <input type="password" id="authPassword">
+    <button class="btn block" style="margin-top:16px" id="authSubmit" onclick="submitAuth()">Login</button>
+    <p style="text-align:center;margin-top:12px;font-size:13px">
+      <span id="authToggleText">No account?</span>
+      <a href="#" onclick="toggleAuthMode();return false;" style="color:var(--green);font-weight:700" id="authToggleBtn">Register</a>
+    </p>
+  </div>
+</div>
+
+<div class="modal" id="commentModal">
+  <div class="box">
+    <h3 id="commentTitle">💬 Comments</h3>
+    <div id="commentList" style="margin:12px 0;max-height:300px;overflow-y:auto"></div>
+    <textarea id="commentInput" rows="2" placeholder="Ask about delivery, price..."></textarea>
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button class="btn small" onclick="postComment()">Post Comment</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="manualSoilModal">
+  <div class="box">
+    <h3>✍️ Manual Soil Readings</h3>
+    <label>pH</label><input type="number" id="mPh" value="6.2" step="0.1">
+    <label>EC (dS/m)</label><input type="number" id="mEc" value="1.1" step="0.1">
+    <label>N (ppm)</label><input type="number" id="mN" value="22">
+    <label>P (ppm)</label><input type="number" id="mP" value="14">
+    <label>K (ppm)</label><input type="number" id="mK" value="110">
+    <button class="btn block" style="margin-top:12px" onclick="runManualSoil()">Analyze</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/app.js"></script>
+<script src="js/i18n.js?v=3"></script>
+<script src="js/api.js"></script>
+<script src="js/validation.js"></script>
+<script src="js/camera.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/market.js"></script>
+<script src="js/soil.js"></script>
+<script src="js/water.js"></script>
+<script src="js/weather.js"></script>
+<script src="js/community.js"></script>
+</body>
+</html>
