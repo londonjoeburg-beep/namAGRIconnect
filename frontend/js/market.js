@@ -1,31 +1,42 @@
-/* Marketplace — clean version */
-let listingsCache = [];
-let uploadedPhotos = [];
-let currentListingId = null;
-let replyParentId = null;
+/* ══════════════════════════════════════════════════
+   MARKET.JS — Complete, bulletproof version
+   Handles: Listings, Buy Now, Comments, Icons, Posting
+   ══════════════════════════════════════════════════ */
 
-function loadListings(){
+let listingsCache = [];
+let currentCheckoutListing = null;
+let currentListingIdForComments = null;
+let uploadedPhotos = [];
+
+// 1. Load Listings from Backend
+async function loadListings() {
   const grid = document.getElementById('listingsGrid');
   if (!grid) return;
   grid.innerHTML = '<div class="card" style="grid-column:1/-1;text-align:center;padding:40px"><span class="spinner"></span> Loading...</div>';
 
-  api.get('/listings?sold=false').then(rows => {
+  try {
+    const rows = await api.get('/listings?sold=false');
     listingsCache = Array.isArray(rows) ? rows : [];
-    console.log('✅ Loaded', listingsCache.length, 'listings');
     renderListings();
-  }).catch(e => {
-    console.error('❌ loadListings:', e);
-    grid.innerHTML = '<div class="card" style="grid-column:1/-1;text-align:center;color:var(--danger);padding:24px">⚠️ ' + e.message + '<br><button class="btn small" style="margin-top:8px" onclick="loadListings()">🔄 Retry</button></div>';
-    if (typeof applyTranslations === 'function') applyTranslations();
-  });
+  } catch (e) {
+    grid.innerHTML = '<div class="card" style="grid-column:1/-1;text-align:center;color:var(--danger);padding:24px">⚠️ ' + e.message + '</div>';
+  }
 }
 
-function renderListings(){
+// 2. Render Listings to the screen
+function renderListings() {
   const grid = document.getElementById('listingsGrid');
   if (!grid) return;
-  const q = (document.getElementById('searchBox').value || '').toLowerCase();
-  const cat = document.getElementById('filterCat').value;
-  const reg = document.getElementById('filterRegion').value;
+
+  // Fix for the "steins" search box bug
+  const searchBox = document.getElementById('searchBox');
+  if (searchBox && searchBox.value === 'steins') {
+    searchBox.value = '';
+  }
+
+  const q = (searchBox?.value || '').toLowerCase();
+  const cat = document.getElementById('filterCat')?.value || '';
+  const reg = document.getElementById('filterRegion')?.value || '';
 
   const filtered = listingsCache.filter(function(l) {
     if (q && !(l.title + ' ' + (l.town || '') + ' ' + (l.description || '')).toLowerCase().includes(q)) return false;
@@ -36,68 +47,196 @@ function renderListings(){
 
   if (!filtered.length) {
     grid.innerHTML = '<div class="card" style="grid-column:1/-1;text-align:center;color:var(--muted);padding:24px">No listings match.</div>';
-    const s = document.getElementById('statListings');
-    if (s) s.textContent = 0;
     return;
   }
 
   grid.innerHTML = '';
+
   filtered.forEach(function(l) {
     let photos = [];
-    try { photos = typeof l.photos === 'string' ? JSON.parse(l.photos) : (l.photos || []); } catch (err) {}
+    try { photos = typeof l.photos === 'string' ? JSON.parse(l.photos) : (l.photos || []); } catch (err) { photos = []; }
+
     const photo = photos[0];
     const photoUrl = photo ? 'http://localhost:4000' + photo : null;
-
     const sellerPhone = l.owner_phone || l.contact_phone || l.phone || '';
     const sellerName = l.owner_name || l.contact_name || 'Farmer';
     const sellerPhoneClean = sellerPhone.replace(/\D/g, '');
+    
     const isOwner = window.currentUser && window.currentUser.id === l.owner_id;
+
+    let photoHtml = photoUrl ? '<img src="' + photoUrl + '" alt="' + l.title + '">' : '<div style="display:flex;align-items:center;justify-content:center;height:100%;background:linear-gradient(135deg,#e8f5ec,#c8e6c9)"><img src="img/logo.png" alt="NamAgriConnect" style="height:80px;opacity:0.85"></div>';
+    
+    let badgeHtml = l.badge ? '<span class="badge gold">✔ ' + l.badge + '</span>' : '';
+
+    const waIcon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>';
+    
+    const callIcon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/></svg>';
+    
+    const smsIcon = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM9 11H7V9h2v2zm4 0h-2V9h2v2zm4 0h-2V9h2v2z"/></svg>';
+
+    const waBtn = '<a href="https://wa.me/' + sellerPhoneClean + '" target="_blank" style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:#25D366;color:white;box-shadow:0 4px 10px rgba(37,211,102,0.3)">' + waIcon + '</a>';
+    const callBtn = '<a href="tel:' + sellerPhone + '" style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:#2980b9;color:white;box-shadow:0 4px 10px rgba(41,128,185,0.3)">' + callIcon + '</a>';
+    const smsBtn = '<button type="button" onclick="openComments(' + l.id + ')" style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:#e8b73a;color:#3a2a00;border:none;cursor:pointer;box-shadow:0 4px 10px rgba(232,183,58,0.3)">' + smsIcon + '</button>';
+
+    // The Buy Button (Forces modal to open and stops page reload)
+    const buyBtn = !isOwner ? '<button type="button" onclick="event.preventDefault(); event.stopPropagation(); openCheckout(' + l.id + ');" style="padding:8px 12px;font-size:12px;background:#e8b73a;border:none;border-radius:8px;cursor:pointer;font-weight:bold;color:#3a2a00;margin-left:auto;box-shadow:0 4px 10px rgba(232,183,58,0.3)">🛒 Buy Now</button>' : '';
+    const ownerBtn = isOwner ? '<button type="button" onclick="markSold(' + l.id + ')" style="padding:8px 12px;font-size:12px;background:#0b6b3a;color:white;border:none;border-radius:8px;cursor:pointer;margin-left:auto">✅ Mark Sold</button>' : '';
 
     const el = document.createElement('div');
     el.className = 'listing';
+
     el.innerHTML =
-      '<div class="photos">' +
-        (photoUrl ? '<img src="' + photoUrl + '" alt="' + l.title + '">' : '<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:56px">🌾</div>') +
-        '<div class="price-tag">N$ ' + Number(l.price).toLocaleString() + ' / ' + l.unit + '</div>' +
-        '<div class="badges">' +
-          (l.badge ? '<span class="badge gold">✔ ' + l.badge + '</span>' : '') +
-          '<span class="badge info">' + l.region + '</span>' +
-        '</div>' +
-      '</div>' +
+      '<div class="photos">' + photoHtml + '<div class="price-tag">N$ ' + Number(l.price).toLocaleString() + ' / ' + l.unit + '</div><div class="badges">' + badgeHtml + '<span class="badge info">' + l.region + '</span></div></div>' +
       '<div class="body">' +
         '<h3>' + l.title + '</h3>' +
         '<div class="meta"><span>📍 ' + l.town + '</span><span>📦 ' + l.quantity + ' ' + l.unit + '</span></div>' +
-        '<div class="meta" style="color:var(--green);font-weight:600;border-top:1px solid var(--border);padding-top:6px">' +
-          '<span>👤 ' + sellerName + '</span><span>📞 ' + (sellerPhone || '—') + '</span>' +
-        '</div>' +
+        '<div class="meta" style="color:var(--green);font-weight:600;border-top:1px solid var(--border);padding-top:6px"><span>👤 ' + sellerName + '</span><span>📞 ' + (sellerPhone || '—') + '</span></div>' +
         '<p style="font-size:13px;color:var(--muted)">' + (l.description || '') + '</p>' +
-        '<div class="actions">' +
-          '<a class="wa-btn" href="https://wa.me/' + sellerPhoneClean + '?text=' + encodeURIComponent('Hello ' + sellerName + '! Interested in: ' + l.title) + '" target="_blank">💬 WhatsApp</a>' +
-          '<a class="btn small outline" href="tel:' + sellerPhone + '">📞 Call</a>' +
-          '<button class="btn small outline" onclick="openComments(' + l.id + ')">💬 Comments</button>' +
-          (isOwner ? '<button class="btn small" onclick="markSold(' + l.id + ')">✅ Mark Sold</button>' : '') +
-        '</div>' +
+        '<div class="actions" style="display:flex;gap:8px;align-items:center;padding-top:10px">' + waBtn + callBtn + smsBtn + buyBtn + ownerBtn + '</div>' +
       '</div>';
+
     grid.appendChild(el);
   });
-
-  const s = document.getElementById('statListings');
-  if (s) s.textContent = filtered.length;
-  const sf = document.getElementById('statFarmers');
-  if (sf) sf.textContent = '12,480';
-  const st = document.getElementById('statTrades');
-  if (st) st.textContent = '3,721';
 }
 
-function markSold(id){
-  if (!requireLogin('mark your listing as sold')) return;
-  if (!confirm('Mark as SOLD?')) return;
-  api.post('/listings/' + id + '/sold', {}).then(function() {
-    toast("✅ Archived to Sales History");
+// 3. Buy Now (Checkout) Logic — FORCED TO SHOW
+function openCheckout(listingId) {
+  console.log('🛒 Buy clicked for listing:', listingId);
+  
+  if (!window.currentUser) return requireLogin('place an order');
+  
+  const listing = listingsCache.find(x => x.id === listingId);
+  if (!listing) return alert('Listing not found');
+
+  currentCheckoutListing = listing;
+
+  document.getElementById('checkoutSummary').innerHTML = 
+    '<b>' + listing.title + '</b><br>' +
+    'Price: N$ ' + listing.price + ' / ' + listing.unit + '<br>' +
+    'Available: ' + listing.quantity + ' ' + listing.unit;
+    
+  document.getElementById('checkoutQty').value = '';
+  document.getElementById('checkoutAddress').value = '';
+  document.getElementById('checkoutError').style.display = 'none';
+  
+  // Force the modal to appear on top of everything
+  const modal = document.getElementById('checkoutModal');
+  if (modal) {
+    modal.classList.add('show');
+    modal.style.display = 'flex';
+    modal.style.zIndex = '9999';
+    console.log('✅ Modal forced open');
+  } else {
+    alert('Error: Checkout modal not found in HTML');
+  }
+}
+
+async function submitCheckout() {
+  const qty = parseFloat(document.getElementById('checkoutQty').value);
+  const address = document.getElementById('checkoutAddress').value.trim();
+  const errEl = document.getElementById('checkoutError');
+  
+  errEl.style.display = 'none';
+  if (isNaN(qty) || qty <= 0) { errEl.textContent = 'Enter valid quantity'; errEl.style.display = 'block'; return; }
+  if (!address) { errEl.textContent = 'Delivery address required'; errEl.style.display = 'block'; return; }
+
+  const btn = document.querySelector('#checkoutModal .btn');
+  btn.textContent = 'Processing...'; btn.disabled = true;
+
+  try {
+    const res = await api.post('/orders', { 
+      listing_id: currentCheckoutListing.id, 
+      quantity: qty, 
+      delivery_address: address,
+      contact_phone: window.currentUser.phone 
+    });
+    
+    closeModal('checkoutModal');
+    alert('✅ Order Confirmed!\n\nTracking: ' + res.tracking_code + '\nNew Balance: N$ ' + res.new_balance);
     loadListings();
-  }).catch(function(e) { toast("⚠️ " + e.message); });
+    goTo('orders');
+  } catch (e) {
+    errEl.textContent = e.message; errEl.style.display = 'block';
+  } finally {
+    btn.textContent = '✅ Confirm & Pay'; btn.disabled = false;
+  }
 }
 
+// 4. Comments Logic
+async function openComments(id) {
+  currentListingIdForComments = id;
+  const list = document.getElementById('commentList');
+  list.innerHTML = '<span class="spinner"></span>';
+  openModal('commentModal');
+  
+  try {
+    const rows = await api.get('/comments/listing/' + id);
+    list.innerHTML = rows.length ? rows.map(c => '<div class="talk-item"><div class="who">' + c.user_name + '</div><div style="font-size:13px">' + c.text + '</div></div>').join('') : '<p style="color:var(--muted)">No comments yet.</p>';
+  } catch (e) {
+    list.innerHTML = '<p style="color:red">' + e.message + '</p>';
+  }
+}
+
+async function postComment() {
+  if (!requireLogin('post a comment')) return;
+  const input = document.getElementById('commentInput');
+  const text = input.value.trim();
+  if (!text) return;
+  
+  try {
+    await api.post('/comments', { listing_id: currentListingIdForComments, text: text });
+    input.value = '';
+    openComments(currentListingIdForComments);
+  } catch (e) { toast(e.message); }
+}
+
+// 5. Mark Sold (Owner only)
+async function markSold(id) {
+  if (!confirm('Mark as sold?')) return;
+  await api.post('/listings/' + id + '/sold', {});
+  loadListings();
+}
+
+// 6. Post a New Listing
+async function submitListing() {
+  if (!requireLogin('post a listing')) return;
+
+  const title = document.getElementById('newTitle')?.value.trim();
+  const qty = document.getElementById('newQty')?.value.trim();
+  const price = parseFloat(document.getElementById('newPrice')?.value);
+  const town = document.getElementById('newTown')?.value.trim();
+
+  if (!title || !qty || !price || !town) return toast("⚠️ Fill required fields");
+
+  const fd = new FormData();
+  fd.append('title', title);
+  fd.append('category', document.getElementById('newCat').value);
+  fd.append('description', document.getElementById('newDesc').value || '');
+  fd.append('quantity', qty);
+  fd.append('unit', document.getElementById('newUnit').value);
+  fd.append('price', price);
+  fd.append('region', document.getElementById('newRegion').value);
+  fd.append('town', town);
+  fd.append('badge', document.getElementById('newBadge').value || '');
+  fd.append('delivery', document.getElementById('newDelivery').value || 'Pickup only');
+  
+  uploadedPhotos.forEach(function(p) { fd.append('photos', p.file); });
+
+  try {
+    await api.post('/listings', fd, true);
+    toast('🌾 Published!');
+    uploadedPhotos = [];
+    document.getElementById('photoPreview').innerHTML = '';
+    ['newTitle', 'newQty', 'newPrice', 'newTown', 'newDesc'].forEach(function(id) {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
+    goTo('market');
+    await loadListings();
+  } catch (e) { toast('⚠️ ' + e.message); }
+}
+
+// 7. Photo Upload Preview
 document.getElementById('newPhotos')?.addEventListener('change', function(e) {
   uploadedPhotos = [];
   const preview = document.getElementById('photoPreview');
@@ -116,164 +255,108 @@ document.getElementById('newPhotos')?.addEventListener('change', function(e) {
   });
 });
 
-function submitListing(){
-  if (!requireLogin('post a listing')) return;
+/* ══════════════════════════════════════════════════
+   ORDERS & TRACKING LOGIC
+   ══════════════════════════════════════════════════ */
 
-  const valid = window.validateFields ? window.validateFields([
-    { el: document.getElementById('newTitle'), message: 'Product title required' },
-    { el: document.getElementById('newQty'), message: 'Quantity required' },
-    { el: document.getElementById('newPrice'), message: 'Price required' },
-    { el: document.getElementById('newTown'), message: 'Town required' }
-  ]) : true;
-
-  if (!valid) { toast("⚠️ Fill in the red fields"); return; }
-
-  const title = document.getElementById('newTitle').value.trim();
-  const qty = document.getElementById('newQty').value.trim();
-  const price = parseFloat(document.getElementById('newPrice').value);
-  const town = document.getElementById('newTown').value.trim();
-
-  const fd = new FormData();
-  fd.append('title', title);
-  fd.append('category', document.getElementById('newCat').value);
-  fd.append('description', document.getElementById('newDesc').value || '');
-  fd.append('quantity', qty);
-  fd.append('unit', document.getElementById('newUnit').value);
-  fd.append('price', price);
-  fd.append('region', document.getElementById('newRegion').value);
-  fd.append('town', town);
-  fd.append('badge', document.getElementById('newBadge').value || '');
-  fd.append('delivery', document.getElementById('newDelivery').value || 'Pickup only');
-  uploadedPhotos.forEach(function(p) { fd.append('photos', p.file); });
-
-  api.post('/listings', fd, true).then(function() {
-    toast("🌾 Published! Refreshing...");
-    uploadedPhotos = [];
-    const prev = document.getElementById('photoPreview');
-    if (prev) prev.innerHTML = '';
-    ['newTitle','newQty','newPrice','newTown','newDesc'].forEach(function(id) {
-      const el = document.getElementById(id);
-      if (el) el.value = '';
-    });
-    goTo('market');
-    loadListings();
-    toast("✅ Listing is live!");
-  }).catch(function(e) { toast("⚠️ " + e.message); });
-}
-
-function openComments(id){
-  currentListingId = id;
-  const l = listingsCache.find(function(x) { return x.id === id; });
-  const titleEl = document.getElementById('commentTitle');
-  if (titleEl) titleEl.textContent = '💬 ' + (l ? l.title : 'Listing');
-  const list = document.getElementById('commentList');
-  if (!list) return;
-  list.innerHTML = '<span class="spinner"></span>';
-
-  api.get('/comments/listing/' + id).then(function(rows) {
-    list.innerHTML = rows.length
-      ? rows.map(renderComment).join('')
-      : '<p style="color:var(--muted);font-size:13px">No comments yet.</p>';
-  }).catch(function(e) {
-    list.innerHTML = '<p style="color:var(--danger);font-size:13px">' + e.message + '</p>';
-  });
-
-  openModal('commentModal');
-}
-
-function renderComment(c){
-  const replies = c.replies || [];
-  const isOwner = window.currentUser && window.currentUser.id === c.owner_id;
-  let html = '<div class="talk-item" style="margin-bottom:12px">' +
-    '<div class="who">' + c.user_name + '</div>' +
-    '<div style="font-size:13px;margin:4px 0">' + c.text + '</div>' +
-    '<div style="display:flex;gap:12px;font-size:12px;color:var(--muted);margin-top:6px">' +
-      '<span style="cursor:pointer" onclick="likeComment(' + c.id + ',this)">👍 ' + (c.likes || 0) + '</span>' +
-      '<span style="cursor:pointer" onclick="replyToComment(' + c.id + ')">↩️ Reply</span>' +
-      (isOwner ? '<span style="cursor:pointer;color:var(--danger)" onclick="deleteComment(' + c.id + ')">🗑️</span>' : '') +
-    '</div>';
-  if (replies.length) {
-    html += '<div style="margin-left:16px;margin-top:8px;padding-left:8px;border-left:2px solid var(--border)">';
-    replies.forEach(function(r) {
-      html += '<div style="padding:6px 0"><div class="who" style="font-size:12px">' + r.user_name + '</div><div style="font-size:12px">' + r.text + '</div></div>';
-    });
-    html += '</div>';
+async function renderMyOrders() {
+  const container = document.getElementById('myOrdersContent');
+  if (!container) return;
+  
+  if (!window.currentUser) {
+    container.innerHTML = '<p style="color:var(--muted)">Login to view orders.</p>';
+    return;
   }
-  html += '</div>';
-  return html;
+
+  container.innerHTML = '<span class="spinner"></span> Loading...';
+
+  try {
+    const orders = await api.get('/orders/my');
+    if (!orders.length) {
+      container.innerHTML = '<p style="color:var(--muted)">No orders yet. Browse the market to place your first order!</p>';
+      return;
+    }
+
+    let html = '';
+    orders.forEach(o => {
+      let statusEmoji = '⏳';
+      if (o.status === 'processing') statusEmoji = '📦';
+      if (o.status === 'shipped') statusEmoji = '🚚';
+      if (o.status === 'delivered') statusEmoji = '✅';
+      if (o.status === 'cancelled') statusEmoji = '❌';
+
+      let badgeClass = 'warn';
+      if (o.status === 'delivered') badgeClass = 'ok';
+      if (o.status === 'cancelled') badgeClass = 'danger';
+
+      html += '<div class="talk-item" style="margin-bottom:10px">';
+      html +=   '<div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px">';
+      html +=     '<div>';
+      html +=       '<b>' + o.title + '</b>';
+      html +=       '<div style="font-size:12px;color:var(--muted);margin-top:4px">' + o.quantity + ' units • N$ ' + Number(o.total_price).toFixed(2) + '</div>';
+      html +=       '<div style="font-size:11px;color:var(--muted);margin-top:2px">Seller: ' + (o.seller_name || 'Farmer') + ' • ' + new Date(o.created_at).toLocaleDateString() + '</div>';
+      html +=     '</div>';
+      html +=     '<div style="text-align:right">';
+      html +=       '<span class="badge ' + badgeClass + '">' + statusEmoji + ' ' + o.status + '</span>';
+      html +=       '<div style="font-size:11px;font-family:monospace;margin-top:6px;background:rgba(0,0,0,0.05);padding:4px 8px;border-radius:6px">' + o.tracking_code + '</div>';
+      html +=     '</div>';
+      html +=   '</div>';
+      html += '</div>';
+    });
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = '<p style="color:var(--danger)">' + e.message + '</p>';
+  }
 }
 
-function likeComment(id, el){
-  if (!requireLogin('like comments')) return;
-  api.post('/comments/' + id + '/like', {}).then(function(r) {
-    if (el) el.innerHTML = '👍 ' + r.likes;
-  }).catch(function(e) { toast("⚠️ " + e.message); });
+async function trackOrder() {
+  const code = document.getElementById('trackingCode').value.trim().toUpperCase();
+  if (!code) return toast('⚠️ Enter tracking code');
+
+  const result = document.getElementById('trackingResult');
+  result.style.display = 'block';
+  result.innerHTML = '<span class="spinner"></span> Tracking...';
+
+  try {
+    const order = await api.get('/orders/track/' + code);
+
+    const steps = ['pending', 'processing', 'shipped', 'delivered'];
+    const currentIdx = steps.indexOf(order.status);
+
+    let stepsHtml = '';
+    steps.forEach((s, i) => {
+      const active = i <= currentIdx;
+      stepsHtml += '<div style="text-align:center;flex:1;position:relative;z-index:2">';
+      stepsHtml +=   '<div style="width:40px;height:40px;border-radius:50%;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:20px;background:' + (active ? 'var(--green)' : 'rgba(0,0,0,0.1)') + ';color:' + (active ? 'white' : 'var(--muted)') + '">' + (active ? '✓' : (i + 1)) + '</div>';
+      stepsHtml +=   '<div style="font-size:11px;font-weight:600;color:' + (active ? 'var(--green)' : 'var(--muted)') + '">' + s.toUpperCase() + '</div>';
+      stepsHtml += '</div>';
+    });
+
+    result.innerHTML =
+      '<h3 style="color:var(--green);margin-bottom:12px">📦 Order ' + order.tracking_code + '</h3>' +
+      '<p style="font-size:13px;margin-bottom:8px"><b>' + order.title + '</b> × ' + order.quantity + '</p>' +
+      '<p style="font-size:13px;color:var(--muted);margin-bottom:16px">Total: N$ ' + Number(order.total_price).toFixed(2) + '</p>' +
+      '<div style="display:flex;justify-content:space-between;margin:24px 0;position:relative">' + stepsHtml + '</div>' +
+      '<p style="font-size:13px;margin-top:16px"><b>Deliver to:</b> ' + order.delivery_address + '</p>' +
+      '<p style="font-size:13px"><b>Ordered:</b> ' + new Date(order.created_at).toLocaleString() + '</p>';
+  } catch (e) {
+    result.innerHTML = '<p style="color:var(--danger)">' + e.message + '</p>';
+  }
 }
 
-function replyToComment(id){
-  replyParentId = id;
-  const inp = document.getElementById('commentInput');
-  if (inp) { inp.placeholder = 'Replying to comment #' + id + '...'; inp.focus(); }
-}
+// Make sure these are exported at the bottom of the file!
+window.renderMyOrders = renderMyOrders;
+window.trackOrder = trackOrder;
 
-function deleteComment(id){
-  if (!confirm('Delete this comment?')) return;
-  api.del('/comments/' + id).then(function() {
-    openComments(currentListingId);
-    toast("🗑️ Deleted");
-  }).catch(function(e) { toast("⚠️ " + e.message); });
-}
-
-function postComment(){
-  if (!requireLogin('post a comment')) return;
-  const input = document.getElementById('commentInput');
-  if (!input) return;
-  const text = input.value.trim();
-  if (!text) { toast("⚠️ Type a comment"); return; }
-  if (!currentListingId) { toast("⚠️ No listing selected"); return; }
-  api.post('/comments', { listing_id: currentListingId, text: text, parent_id: replyParentId }).then(function() {
-    input.value = '';
-    input.placeholder = 'Ask about delivery, price...';
-    replyParentId = null;
-    openComments(currentListingId);
-    toast("💬 Posted");
-  }).catch(function(e) { toast("⚠️ " + e.message); });
-}
-
-// Attach everything to window FIRST — before any code runs
+// Exports
 window.loadListings = loadListings;
 window.renderListings = renderListings;
-window.markSold = markSold;
-window.submitListing = submitListing;
+window.openCheckout = openCheckout;
+window.submitCheckout = submitCheckout;
 window.openComments = openComments;
 window.postComment = postComment;
-window.likeComment = likeComment;
-window.replyToComment = replyToComment;
-window.deleteComment = deleteComment;
+window.markSold = markSold;
+window.submitListing = submitListing;
 
-// Ticker — after everything is defined
-function initTicker() {
-  api.get('/rfqs').then(function(rfqs) {
-    const items = rfqs.slice(0, 8).map(function(r) {
-      return '📢 ' + r.item + ' — ' + r.region + (r.budget ? ' — N$ ' + Number(r.budget).toLocaleString() : '');
-    });
-    if (!items.length) items.push('📢 No active RFQs', '🌾 Fresh listings daily');
-    const track = document.getElementById('tickerTrack');
-    if (track) track.innerHTML = items.map(function(i) { return '<span>' + i + '</span>'; }).join('');
-  }).catch(function() {
-    const track = document.getElementById('tickerTrack');
-    if (track) track.innerHTML = '<span>📢 Market ticker...</span>';
-  });
-}
-
-// Boot
-function bootMarket() {
-  loadListings();
-  initTicker();
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', bootMarket);
-} else {
-  bootMarket();
-}
+// Initial Load
+loadListings();

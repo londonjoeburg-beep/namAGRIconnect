@@ -1,3 +1,5 @@
+/* Authentication System */
+
 let currentUser = null;
 let authMode = 'login';
 
@@ -10,25 +12,21 @@ async function loadSession() {
   } catch {
     localStorage.removeItem('token');
     currentUser = null;
+    window.currentUser = null;
   }
   updateAuthUI();
 }
 
 function updateAuthUI() {
-  const btn = document.getElementById('authBtn');
-  const farmBtn = document.getElementById('myFarmBtn');
+  const loginBtn = document.getElementById('loginBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
+  
   if (currentUser) {
-    btn.innerHTML = `⏻ Logout`;
-    btn.title = `Logout ${currentUser.name || currentUser.phone}`;
-    btn.onclick = () => {
-      if (confirm(`Logout ${currentUser.name || currentUser.phone}?`)) logout();
-    };
-    if (farmBtn) farmBtn.style.display = 'inline-flex';
+    if (loginBtn) loginBtn.style.display = 'none';
+    if (logoutBtn) logoutBtn.style.display = 'inline-flex';
   } else {
-    btn.innerHTML = '🔐 Login';
-    btn.onclick = () => openAuth('login');
-    if (farmBtn) farmBtn.style.display = 'none';
-    if (typeof applyTranslations === 'function') applyTranslations();
+    if (loginBtn) loginBtn.style.display = 'inline-flex';
+    if (logoutBtn) logoutBtn.style.display = 'none';
   }
 }
 
@@ -45,28 +43,9 @@ function openAuth(mode = 'login') {
 function toggleAuthMode() { openAuth(authMode === 'login' ? 'register' : 'login'); }
 
 async function submitAuth() {
-  const fields = [
-    { el: document.getElementById('authPhone'), message: 'Phone number is required',
-      check: v => v.length >= 8 },
-    { el: document.getElementById('authPassword'), message: 'Password must be at least 6 characters',
-      check: v => v.length >= 6 }
-  ];
-
-  if (authMode === 'register') {
-    fields.unshift({
-      el: document.getElementById('authName'),
-      message: 'Your name is required'
-    });
-  }
-
-  const valid = validateFields(fields);
-  if (!valid) {
-    toast("⚠️ Please fix the highlighted fields");
-    return;
-  }
-
   const phone = document.getElementById('authPhone').value.trim();
   const password = document.getElementById('authPassword').value;
+  if (!phone || !password) return toast("⚠️ Phone + password required");
 
   try {
     let data;
@@ -76,6 +55,7 @@ async function submitAuth() {
       const name = document.getElementById('authName').value.trim();
       const region = document.getElementById('authRegion').value.trim();
       const town = document.getElementById('authTown').value.trim();
+      if (!name) return toast("⚠️ Name required");
       data = await api.post('/auth/register', { phone, name, region, town, password });
     }
     localStorage.setItem('token', data.token);
@@ -85,9 +65,6 @@ async function submitAuth() {
     updateAuthUI();
     toast(`✅ Welcome ${data.user.name || data.user.phone}!`);
     if (typeof loadListings === 'function') loadListings();
-    if (typeof renderCommunity === 'function') renderCommunity();
-    if (typeof renderRFQ === 'function') renderRFQ();
-    if (typeof renderProfile === 'function') renderProfile();
   } catch (e) {
     toast("❌ " + e.message);
   }
@@ -99,9 +76,18 @@ function logout() {
   window.currentUser = null;
   updateAuthUI();
   toast("👋 Logged out");
-  if (typeof loadListings === 'function') loadListings();
-  if (typeof renderProfile === 'function') renderProfile();
-  goTo('market');
+
+  // Hide the app UI
+  document.querySelectorAll('header, nav.tabs, main, .bottom-nav').forEach(el => {
+    if (el) el.style.display = 'none';
+  });
+
+  // Show the login gate
+  if (typeof showLoginGate === 'function') {
+    showLoginGate();
+  } else {
+    location.reload();
+  }
 }
 
 function requireLogin(action = 'do this') {
@@ -119,6 +105,5 @@ window.toggleAuthMode = toggleAuthMode;
 window.submitAuth = submitAuth;
 window.logout = logout;
 window.requireLogin = requireLogin;
-window.loadSession = loadSession;
 
 document.addEventListener('DOMContentLoaded', loadSession);

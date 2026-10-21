@@ -30,6 +30,9 @@ import weatherRouter from './routes/weather.js';
 import ussdRouter from './routes/ussd.js';
 import usersRouter from './routes/users.js';
 import { errorHandler } from './middleware/error.js';
+import walletRouter from './routes/wallet.js';
+import ordersRouter from './routes/orders.js';
+import otpRouter from './routes/otp.js';
 
 dotenv.config();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -55,6 +58,9 @@ app.use('/api/virus', virusRouter);
 app.use('/api/weather', weatherRouter);
 app.use('/api/ussd', ussdRouter);
 app.use('/api/users', usersRouter);
+app.use('/api/wallet', walletRouter);
+app.use('/api/orders', ordersRouter);
+app.use('/api/otp', otpRouter);
 
 app.use(errorHandler);
 

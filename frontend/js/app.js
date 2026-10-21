@@ -11,6 +11,8 @@ function goTo(page){
   if (page === 'virus') renderOutbreaks();
   if (page === 'water') calcWater();
   if (page === 'ussd') ussdBoot();
+  if (page === 'orders') renderMyOrders();
+if (page === 'wallet') renderWallet();
 }
 
 document.querySelectorAll('.tab, .bottom-nav button').forEach(btn => {
@@ -18,7 +20,13 @@ document.querySelectorAll('.tab, .bottom-nav button').forEach(btn => {
 });
 
 function openModal(id){ document.getElementById(id)?.classList.add('show'); }
-function closeModal(id){ document.getElementById(id)?.classList.remove('show'); }
+function closeModal(id){ 
+  const el = document.getElementById(id);
+  if (el) {
+    el.classList.remove('show');
+    el.style.display = 'none'; // Force hide
+  }
+}
 document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('show'); }));
 
 let toastTimer;

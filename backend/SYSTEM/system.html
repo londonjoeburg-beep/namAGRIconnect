@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Student Activity & Assignment Scanner</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Tracker -->
+        <aside class="sidebar">
+            <h2>Live Student Feed</h2>
+            <div class="status-badge live-pulse">System Live</div>
+            <div id="activity-log" class="activity-log">
+                <!-- Live generated activities go here -->
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="main-content">
+            <header>
+                <h1>AI Assignment Scanning Portal</h1>
+                <p>Upload a student text submission or mock document to trigger real-time AI evaluation.</p>
+            </header>
+
+            <!-- Upload Area -->
+            <section class="scanner-section">
+                <div id="drop-zone" class="drop-zone">
+                    <div class="icon">📁</div>
+                    <p>Drag & Drop student assignment file here or <span>browse</span></p>
+                    <input type="file" id="file-input" accept=".txt,.doc,.docx,.pdf" hidden>
+                </div>
+            </section>
+
+            <!-- Real-time Status / Loading -->
+            <div id="scan-loader" class="loader hidden">
+                <div class="spinner"></div>
+                <p id="loader-text">Initializing OCR and AI parsing engines...</p>
+            </div>
+
+            <!-- Analysis Dashboard -->
+            <section id="results-dashboard" class="results-dashboard hidden">
+                <h2>Scan Matrix Report</h2>
+                
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <h3>AI Confidence Score</h3>
+                        <div class="value" id="metric-score">0%</div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Plagiarism / AI Match</h3>
+                        <div class="value warning" id="metric-plagiarism">0%</div>
+                    </div>
+                    <div class="metric-card">
+                        <h3>Readability Index</h3>
+                        <div class="value" id="metric-readability">High</div>
+                    </div>
+                </div>
+
+                <div class="report-details">
+                    <div class="detail-box">
+                        <h3>Extracted Document Text</h3>
+                        <div id="extracted-text" class="text-preview"></div>
+                    </div>
+                    <div class="detail-box">
+                        <h3>AI Feedback & Suggestions</h3>
+                        <div id="ai-feedback" class="feedback-preview"></div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+</body>
+</html>

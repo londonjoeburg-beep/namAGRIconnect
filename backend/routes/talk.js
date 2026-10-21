@@ -4,6 +4,7 @@ import { authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
+// GET all talk posts
 router.get('/', async (_req, res) => {
   try {
     const result = await query(
@@ -15,12 +16,15 @@ router.get('/', async (_req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// POST a new talk post
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const { text } = req.body;
-    if (!text) return res.status(400).json({ error: 'text required' });
+    if (!text) return res.status(400).json({ error: 'Text required' });
+    
     const me = await query('SELECT name FROM users WHERE id=?', [req.user.id]);
     const name = me.rows[0]?.name || 'Farmer';
+    
     const result = await query(
       'INSERT INTO talk_posts (user_name, text, owner_id) VALUES (?, ?, ?)',
       [name, text, req.user.id]
@@ -30,16 +34,19 @@ router.post('/', authMiddleware, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// DELETE a talk post (owner only)
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const check = await query('SELECT owner_id FROM talk_posts WHERE id=?', [req.params.id]);
     if (!check.rows[0]) return res.status(404).json({ error: 'Not found' });
     if (check.rows[0].owner_id !== req.user.id) return res.status(403).json({ error: 'Not yours' });
+    
     await query('DELETE FROM talk_posts WHERE id=?', [req.params.id]);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// LIKE a talk post
 router.post('/:id/like', authMiddleware, async (req, res) => {
   try {
     const existing = await query(
