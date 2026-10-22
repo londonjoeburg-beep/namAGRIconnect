@@ -3,13 +3,16 @@
 let gateMode = 'login';
 
 function showLoginGate() {
+  // 1. Hide the entire app UI
   document.querySelectorAll('header, nav.tabs, main, .bottom-nav').forEach(el => {
     if (el) el.style.display = 'none';
   });
 
+  // 2. Remove any existing gate
   const existing = document.getElementById('loginGate');
   if (existing) existing.remove();
 
+  // 3. Create the gate
   const gate = document.createElement('div');
   gate.id = 'loginGate';
   gate.style.cssText = `
@@ -25,7 +28,6 @@ function showLoginGate() {
     overflow-y: auto;
   `;
 
-  // VERY subtle dark overlay — only 25% opacity so image stays visible
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,0.25);pointer-events:none;';
   gate.appendChild(overlay);
@@ -114,7 +116,7 @@ async function gateSubmit() {
     const endpoint = gateMode === 'login' ? '/auth/login' : '/auth/register';
     const payload = gateMode === 'login' ? { phone, password } : { phone, name, region, password };
 
-       const baseUrl = window.location.hostname === 'localhost' 
+    const baseUrl = window.location.hostname === 'localhost' 
       ? 'http://localhost:4000' 
       : 'https://namagriconnect-3.onrender.com';
 
@@ -133,6 +135,7 @@ async function gateSubmit() {
 
     const gate = document.getElementById('loginGate');
     if (gate) gate.remove();
+    
     document.querySelectorAll('header, nav.tabs, main, .bottom-nav').forEach(el => {
       if (el) el.style.display = '';
     });
@@ -158,7 +161,3 @@ document.addEventListener('DOMContentLoaded', function() {
   const token = localStorage.getItem('token');
   if (!token) showLoginGate();
 });
-
-
-
-console.log('✅ login-gate.js loaded — clean farm background');
