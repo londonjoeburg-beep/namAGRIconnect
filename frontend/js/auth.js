@@ -1,11 +1,10 @@
 /* ══════════════════════════════════════════════════
-   AUTH.JS — Single source of truth for authentication
+   AUTH.JS — Single source of truth
    ══════════════════════════════════════════════════ */
 
 let currentUser = null;
 window.currentUser = null;
 
-// Load session from localStorage
 async function loadSession() {
   const token = localStorage.getItem('token');
   const user = localStorage.getItem('user');
@@ -20,7 +19,7 @@ async function loadSession() {
     window.currentUser = currentUser;
     console.log('✅ Session restored:', currentUser.name || currentUser.phone);
   } catch (e) {
-    console.error('❌ Corrupted user data:', e);
+    console.error('❌ Corrupted user:', e);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     currentUser = null;
@@ -30,29 +29,29 @@ async function loadSession() {
   updateAuthUI();
 }
 
-// Update the header button based on login state
 function updateAuthUI() {
   const btn = document.getElementById('authBtn');
   if (!btn) return;
 
   if (currentUser) {
-    // LOGGED IN → show Logout (red)
     btn.innerHTML = '⏻ Logout';
     btn.style.background = '#c0392b';
     btn.style.borderColor = '#c0392b';
-    btn.onclick = logout;
   } else {
-    // LOGGED OUT → show Login
     btn.innerHTML = '🔐 Login';
     btn.style.background = 'rgba(0,0,0,0.4)';
     btn.style.borderColor = 'rgba(255,255,255,0.2)';
-    btn.onclick = () => {
-      if (typeof showLoginGate === 'function') showLoginGate();
-    };
   }
 }
 
-// Logout
+function handleAuthClick() {
+  if (currentUser) {
+    logout();
+  } else {
+    if (typeof showLoginGate === 'function') showLoginGate();
+  }
+}
+
 function logout() {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
@@ -60,12 +59,9 @@ function logout() {
   window.currentUser = null;
 
   if (typeof toast === 'function') toast('👋 Logged out');
-
-  // Reload to show login gate fresh
   window.location.reload();
 }
 
-// Only for actions that absolutely need login
 function requireLogin(action) {
   if (!currentUser) {
     if (typeof toast === 'function') toast('🔐 Please login first');
@@ -75,7 +71,6 @@ function requireLogin(action) {
   return true;
 }
 
-// Submit login/register from the login gate
 async function submitGateAuth(phone, password, isRegister, name, region) {
   const endpoint = isRegister ? '/auth/register' : '/auth/login';
   const payload = isRegister 
@@ -86,31 +81,43 @@ async function submitGateAuth(phone, password, isRegister, name, region) {
     ? 'http://localhost:4000'
     : 'https://namagriconnect-3.onrender.com';
 
-  const response = await fetch(baseUrl + '/api' + endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 90000);
 
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Login failed');
+  try {
+    const response = await fetch(baseUrl + '/api' + endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
 
-  localStorage.setItem('token', data.token);
-  localStorage.setItem('user', JSON.stringify(data.user));
-  currentUser = data.user;
-  window.currentUser = currentUser;
-  updateAuthUI();
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Login failed');
 
-  return data.user;
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('user', JSON.stringify(data.user));
+    currentUser = data.user;
+    window.currentUser = currentUser;
+    updateAuthUI();
+
+    return data.user;
+  } catch (e) {
+    clearTimeout(timeoutId);
+    if (e.name === 'AbortError') {
+      throw new Error('Server took too long. Please try again.');
+    }
+    throw e;
+  }
 }
 
-// Exports
-window.currentUser = null;
+window.openAuth = handleAuthClick;
+window.handleAuthClick = handleAuthClick;
 window.logout = logout;
 window.requireLogin = requireLogin;
 window.loadSession = loadSession;
 window.updateAuthUI = updateAuthUI;
 window.submitGateAuth = submitGateAuth;
 
-// Load session on page load
 document.addEventListener('DOMContentLoaded', loadSession);

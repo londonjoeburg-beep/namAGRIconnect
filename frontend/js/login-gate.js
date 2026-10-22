@@ -1,21 +1,17 @@
 /* ══════════════════════════════════════════════════
-   LOGIN-GATE.JS — Shows login screen only when needed
+   LOGIN-GATE.JS — Shows only when user is logged out
    ══════════════════════════════════════════════════ */
 
 let gateMode = 'login';
 
-// Show the login gate
 function showLoginGate() {
-  // Hide the app UI
   document.querySelectorAll('header, nav.tabs, main, .bottom-nav').forEach(el => {
     if (el) el.style.display = 'none';
   });
 
-  // Remove any existing gate
   const existing = document.getElementById('loginGate');
   if (existing) existing.remove();
 
-  // Create the gate
   const gate = document.createElement('div');
   gate.id = 'loginGate';
   gate.style.cssText = `
@@ -123,15 +119,11 @@ async function gateSubmit() {
 
   try {
     await submitGateAuth(phone, password, gateMode === 'register', name, region);
-
     const gate = document.getElementById('loginGate');
     if (gate) gate.remove();
     document.querySelectorAll('header, nav.tabs, main, .bottom-nav').forEach(el => {
       if (el) el.style.display = '';
     });
-
-    // 🔥 Force header button to show Logout
-    if (typeof updateAuthUI === 'function') updateAuthUI();
     if (typeof toast === 'function') toast('✅ Welcome!');
     if (typeof loadListings === 'function') loadListings();
   } catch (err) {
@@ -142,18 +134,15 @@ async function gateSubmit() {
   }
 }
 
-// Expose to window
 window.showLoginGate = showLoginGate;
 window.gateSubmit = gateSubmit;
 window.gateToggleMode = gateToggleMode;
 
-// Show gate ONLY if not logged in
 document.addEventListener('DOMContentLoaded', () => {
   const token = localStorage.getItem('token');
   const user = localStorage.getItem('user');
 
   if (token && user) {
-    // Already logged in — show the app, keep gate hidden
     try {
       window.currentUser = JSON.parse(user);
       if (typeof updateAuthUI === 'function') updateAuthUI();
@@ -162,7 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
       showLoginGate();
     }
   } else {
-    // Not logged in — show login gate
     showLoginGate();
   }
 });
