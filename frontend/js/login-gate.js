@@ -1,18 +1,21 @@
-/* Login Gate — Farm background, NO green overlay */
+/* ══════════════════════════════════════════════════
+   LOGIN-GATE.JS — Shows login screen only when needed
+   ══════════════════════════════════════════════════ */
 
 let gateMode = 'login';
 
+// Show the login gate
 function showLoginGate() {
-  // 1. Hide the entire app UI
+  // Hide the app UI
   document.querySelectorAll('header, nav.tabs, main, .bottom-nav').forEach(el => {
     if (el) el.style.display = 'none';
   });
 
-  // 2. Remove any existing gate
+  // Remove any existing gate
   const existing = document.getElementById('loginGate');
   if (existing) existing.remove();
 
-  // 3. Create the gate
+  // Create the gate
   const gate = document.createElement('div');
   gate.id = 'loginGate';
   gate.style.cssText = `
@@ -29,19 +32,18 @@ function showLoginGate() {
   `;
 
   const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,0.25);pointer-events:none;';
+  overlay.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,0.35);pointer-events:none;';
   gate.appendChild(overlay);
 
   const card = document.createElement('div');
   card.style.cssText = `
     position: relative;
     z-index: 2;
-    background: rgba(255,255,255,0.12);
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid rgba(255,255,255,0.35);
     border-radius: 24px;
-    max-width: 440px;
+    max-width: 420px;
     width: 100%;
     padding: 40px 32px;
     box-shadow: 0 24px 60px rgba(0,0,0,0.5);
@@ -49,23 +51,30 @@ function showLoginGate() {
   `;
 
   card.innerHTML = `
-    <img src="img/logo.png" alt="NamAgriConnect" style="height:90px;width:auto;margin-bottom:16px;display:block;margin-left:auto;margin-right:auto;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.5))">
-    <h1 style="color:white;font-size:28px;font-weight:800;margin:0 0 4px;text-shadow:0 2px 8px rgba(0,0,0,0.7)">NamAgriConnect</h1>
-    <p style="color:rgba(255,255,255,0.95);font-size:14px;margin:0 0 32px;text-shadow:0 1px 4px rgba(0,0,0,0.7)">Namibia All-in-One Agri Platform</p>
+    <img src="img/logo.png" alt="NamAgriConnect" style="height:80px;width:auto;margin-bottom:16px;display:block;margin-left:auto;margin-right:auto;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.5))">
+    <h1 style="color:white;font-size:26px;font-weight:800;margin:0 0 4px;text-shadow:0 2px 8px rgba(0,0,0,0.7)">NamAgriConnect</h1>
+    <p style="color:rgba(255,255,255,0.9);font-size:13px;margin:0 0 28px;text-shadow:0 1px 4px rgba(0,0,0,0.7)">Namibia All-in-One Agri Platform</p>
+
     <div style="text-align:left">
-      <label style="color:white;font-size:13px;font-weight:700;display:block;margin-bottom:6px;text-shadow:0 1px 3px rgba(0,0,0,0.5)">Phone Number *</label>
-      <input id="gatePhone" type="tel" placeholder="+264812345678" style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.2);color:white;font-size:15px;margin-bottom:16px;box-sizing:border-box">
+      <label style="color:white;font-size:13px;font-weight:700;display:block;margin-bottom:6px">Phone Number *</label>
+      <input id="gatePhone" type="tel" placeholder="+264812345678" style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.15);color:white;font-size:15px;margin-bottom:16px;box-sizing:border-box">
+
       <div id="registerFields" style="display:none">
-        <label style="color:white;font-size:13px;font-weight:700;display:block;margin-bottom:6px;text-shadow:0 1px 3px rgba(0,0,0,0.5)">Your Name *</label>
-        <input id="gateName" type="text" placeholder="Full name" style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.2);color:white;font-size:15px;margin-bottom:16px;box-sizing:border-box">
-        <label style="color:white;font-size:13px;font-weight:700;display:block;margin-bottom:6px;text-shadow:0 1px 3px rgba(0,0,0,0.5)">Region</label>
-        <input id="gateRegion" type="text" placeholder="e.g. Kavango East" style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.2);color:white;font-size:15px;margin-bottom:16px;box-sizing:border-box">
+        <label style="color:white;font-size:13px;font-weight:700;display:block;margin-bottom:6px">Your Name *</label>
+        <input id="gateName" type="text" placeholder="Full name" style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.15);color:white;font-size:15px;margin-bottom:16px;box-sizing:border-box">
+
+        <label style="color:white;font-size:13px;font-weight:700;display:block;margin-bottom:6px">Region</label>
+        <input id="gateRegion" type="text" placeholder="e.g. Kavango East" style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.15);color:white;font-size:15px;margin-bottom:16px;box-sizing:border-box">
       </div>
-      <label style="color:white;font-size:13px;font-weight:700;display:block;margin-bottom:6px;text-shadow:0 1px 3px rgba(0,0,0,0.5)">Password * (min 6 chars)</label>
-      <input id="gatePassword" type="password" placeholder="••••••" style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.2);color:white;font-size:15px;margin-bottom:20px;box-sizing:border-box">
-      <div id="gateError" style="color:#ffcccc;font-size:13px;margin-bottom:12px;display:none;padding:10px;background:rgba(255,0,0,0.3);border-radius:8px;border:1px solid rgba(255,100,100,0.4)"></div>
+
+      <label style="color:white;font-size:13px;font-weight:700;display:block;margin-bottom:6px">Password * (min 6 chars)</label>
+      <input id="gatePassword" type="password" placeholder="••••••" style="width:100%;padding:14px 16px;border-radius:12px;border:1px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.15);color:white;font-size:15px;margin-bottom:20px;box-sizing:border-box">
+
+      <div id="gateError" style="color:#ffcccc;font-size:13px;margin-bottom:12px;display:none;padding:10px;background:rgba(255,0,0,0.25);border-radius:8px;"></div>
+
       <button id="gateSubmit" onclick="gateSubmit()" style="width:100%;padding:16px;border-radius:12px;border:none;background:linear-gradient(135deg,#e8b73a,#f2c94c);color:#3a2a00;font-size:16px;font-weight:800;cursor:pointer;margin-bottom:16px;box-shadow:0 8px 24px rgba(232,183,58,0.5)">Login</button>
-      <p style="color:white;text-align:center;font-size:14px;margin:0;text-shadow:0 1px 3px rgba(0,0,0,0.5)">
+
+      <p style="color:white;text-align:center;font-size:14px;margin:0">
         <span id="gateToggleText">No account?</span>
         <a href="#" onclick="event.preventDefault();gateToggleMode();" style="color:#f2c94c;font-weight:700;text-decoration:underline" id="gateToggleBtn">Register</a>
       </p>
@@ -113,38 +122,18 @@ async function gateSubmit() {
   submitBtn.textContent = 'Please wait...';
 
   try {
-    const endpoint = gateMode === 'login' ? '/auth/login' : '/auth/register';
-    const payload = gateMode === 'login' ? { phone, password } : { phone, name, region, password };
-
-    const baseUrl = window.location.hostname === 'localhost' 
-      ? 'http://localhost:4000' 
-      : 'https://namagriconnect-3.onrender.com';
-
-    const response = await fetch(baseUrl + '/api' + endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
-
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Failed: ' + response.status);
-
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
-    window.currentUser = data.user;
+    await submitGateAuth(phone, password, gateMode === 'register', name, region);
 
     const gate = document.getElementById('loginGate');
     if (gate) gate.remove();
-    
     document.querySelectorAll('header, nav.tabs, main, .bottom-nav').forEach(el => {
       if (el) el.style.display = '';
     });
 
+    // 🔥 Force header button to show Logout
     if (typeof updateAuthUI === 'function') updateAuthUI();
+    if (typeof toast === 'function') toast('✅ Welcome!');
     if (typeof loadListings === 'function') loadListings();
-    if (typeof renderCommunity === 'function') renderCommunity();
-    if (typeof toast === 'function') toast('✅ Welcome ' + (data.user.name || data.user.phone) + '!');
-
   } catch (err) {
     console.error('❌', err);
     showGateError(err.message);
@@ -153,11 +142,27 @@ async function gateSubmit() {
   }
 }
 
+// Expose to window
+window.showLoginGate = showLoginGate;
 window.gateSubmit = gateSubmit;
 window.gateToggleMode = gateToggleMode;
-window.showLoginGate = showLoginGate;
 
-document.addEventListener('DOMContentLoaded', function() {
+// Show gate ONLY if not logged in
+document.addEventListener('DOMContentLoaded', () => {
   const token = localStorage.getItem('token');
-  if (!token) showLoginGate();
+  const user = localStorage.getItem('user');
+
+  if (token && user) {
+    // Already logged in — show the app, keep gate hidden
+    try {
+      window.currentUser = JSON.parse(user);
+      if (typeof updateAuthUI === 'function') updateAuthUI();
+      if (typeof loadListings === 'function') loadListings();
+    } catch (e) {
+      showLoginGate();
+    }
+  } else {
+    // Not logged in — show login gate
+    showLoginGate();
+  }
 });

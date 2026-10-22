@@ -1,111 +1,116 @@
-let currentUser = null;
-let authMode = 'login';
+/* ══════════════════════════════════════════════════
+   AUTH.JS — Single source of truth for authentication
+   ══════════════════════════════════════════════════ */
 
+let currentUser = null;
+window.currentUser = null;
+
+// Load session from localStorage
 async function loadSession() {
   const token = localStorage.getItem('token');
-  if (!token) { updateAuthUI(); return; }
+  const user = localStorage.getItem('user');
+
+  if (!token || !user) {
+    updateAuthUI();
+    return;
+  }
+
   try {
-    currentUser = await api.get('/auth/me');
+    currentUser = JSON.parse(user);
     window.currentUser = currentUser;
-  } catch {
+    console.log('✅ Session restored:', currentUser.name || currentUser.phone);
+  } catch (e) {
+    console.error('❌ Corrupted user data:', e);
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     currentUser = null;
     window.currentUser = null;
   }
+
   updateAuthUI();
 }
 
+// Update the header button based on login state
 function updateAuthUI() {
   const btn = document.getElementById('authBtn');
   if (!btn) return;
-  
+
   if (currentUser) {
+    // LOGGED IN → show Logout (red)
     btn.innerHTML = '⏻ Logout';
-    btn.style.background = '#c0392b'; 
+    btn.style.background = '#c0392b';
     btn.style.borderColor = '#c0392b';
+    btn.onclick = logout;
   } else {
+    // LOGGED OUT → show Login
     btn.innerHTML = '🔐 Login';
-    btn.style.background = 'rgba(0,0,0,0.4)'; 
+    btn.style.background = 'rgba(0,0,0,0.4)';
     btn.style.borderColor = 'rgba(255,255,255,0.2)';
+    btn.onclick = () => {
+      if (typeof showLoginGate === 'function') showLoginGate();
+    };
   }
 }
 
-function handleAuthClick() {
-  if (currentUser) {
-    logout();
-  } else {
-    openAuth('login');
-  }
-}
-
-function openAuth(mode = 'login') {
-  authMode = mode;
-  const title = document.getElementById('authTitle');
-  const regFields = document.getElementById('registerOnly');
-  const submit = document.getElementById('authSubmit');
-  
-  if(title) title.textContent = mode === 'login' ? '🔐 Login' : '📝 Register';
-  if(regFields) regFields.style.display = mode === 'register' ? 'block' : 'none';
-  if(submit) submit.textContent = mode === 'login' ? 'Login' : 'Create Account';
-  
-  openModal('authModal');
-}
-
-function toggleAuthMode() { openAuth(authMode === 'login' ? 'register' : 'login'); }
-
-async function submitAuth() {
-  const phone = document.getElementById('authPhone').value.trim();
-  const password = document.getElementById('authPassword').value;
-  if (!phone || !password) return toast("⚠️ Phone + password required");
-
-  try {
-    let data;
-    if (authMode === 'login') {
-      data = await api.post('/auth/login', { phone, password });
-    } else {
-      const name = document.getElementById('authName').value.trim();
-      const region = document.getElementById('authRegion').value.trim();
-      if (!name) return toast("⚠️ Name required");
-      data = await api.post('/auth/register', { phone, name, region, password });
-    }
-    localStorage.setItem('token', data.token);
-    currentUser = data.user;
-    window.currentUser = currentUser;
-    closeModal('authModal');
-    updateAuthUI();
-    toast(`✅ Welcome ${data.user.name || data.user.phone}!`);
-    if (typeof loadListings === 'function') loadListings();
-  } catch (e) {
-    toast("❌ " + e.message);
-  }
-}
-
+// Logout
 function logout() {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
   currentUser = null;
   window.currentUser = null;
-  if (typeof toast === 'function') toast("👋 Logged out");
-  window.location.reload(); 
+
+  if (typeof toast === 'function') toast('👋 Logged out');
+
+  // Reload to show login gate fresh
+  window.location.reload();
 }
 
-// 🔥 THIS WAS MISSING! 
-function requireLogin(action = 'do this') {
+// Only for actions that absolutely need login
+function requireLogin(action) {
   if (!currentUser) {
-    toast(`🔐 Please login to ${action}`);
-    openAuth('login');
+    if (typeof toast === 'function') toast('🔐 Please login first');
+    if (typeof showLoginGate === 'function') showLoginGate();
     return false;
   }
   return true;
 }
 
+// Submit login/register from the login gate
+async function submitGateAuth(phone, password, isRegister, name, region) {
+  const endpoint = isRegister ? '/auth/register' : '/auth/login';
+  const payload = isRegister 
+    ? { phone, name, region, password } 
+    : { phone, password };
+
+  const baseUrl = window.location.hostname === 'localhost'
+    ? 'http://localhost:4000'
+    : 'https://namagriconnect-3.onrender.com';
+
+  const response = await fetch(baseUrl + '/api' + endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Login failed');
+
+  localStorage.setItem('token', data.token);
+  localStorage.setItem('user', JSON.stringify(data.user));
+  currentUser = data.user;
+  window.currentUser = currentUser;
+  updateAuthUI();
+
+  return data.user;
+}
+
+// Exports
 window.currentUser = null;
-window.openAuth = openAuth;
-window.toggleAuthMode = toggleAuthMode;
-window.submitAuth = submitAuth;
 window.logout = logout;
 window.requireLogin = requireLogin;
+window.loadSession = loadSession;
 window.updateAuthUI = updateAuthUI;
-window.handleAuthClick = handleAuthClick;
+window.submitGateAuth = submitGateAuth;
 
+// Load session on page load
 document.addEventListener('DOMContentLoaded', loadSession);
