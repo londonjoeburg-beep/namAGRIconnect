@@ -2,22 +2,21 @@
 <html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="#0b6b3a" />
-<title data-i18n="app_name">NamAgriConnect — Namibia All-in-One Agri Platform</title>
+<title>NamAgriConnect</title>
 <link rel="icon" type="image/png" href="img/logo-icon.png">
 <link rel="apple-touch-icon" href="img/logo-icon.png">
 <link rel="manifest" href="manifest.json" />
-<link rel="stylesheet" href="css/main.css?v=7" />
-<link rel="stylesheet" href="css/dark.css?v=7" />
+<link rel="stylesheet" href="css/main.css?v=8" />
+<link rel="stylesheet" href="css/dark.css?v=8" />
 </head>
 <body>
 
-<!-- HEADER -->
 <header>
   <div class="header-top">
     <div class="logo">
-      <img src="img/logo.png" alt="NamAgriConnect" style="height:36px;width:auto;vertical-align:middle">
+      <img src="img/logo.png" alt="NamAgriConnect" style="height:32px;width:auto;vertical-align:middle">
       <span>NAMIBIA</span>
     </div>
     <div class="header-actions">
@@ -30,13 +29,12 @@
         <option value="kho">🇳🇦 Khoekhoegowab</option>
         <option value="siz">🇳🇦 Silozi</option>
       </select>
-      <button class="icon-btn" id="authBtn">🔐 Login</button>
+      <button class="icon-btn" id="authBtn" onclick="handleAuthClick()">🔐 Login</button>
       <button class="icon-btn" data-i18n="sell_btn" onclick="requireLogin('post a listing') && goTo('sell')">➕ Sell</button>
     </div>
   </div>
 </header>
 
-<!-- TABS -->
 <nav class="tabs">
   <button class="tab active" data-page="market" data-i18n="tab_market">🛒 Market</button>
   <button class="tab" data-page="sell" data-i18n="tab_sell">📸 Post Listing</button>
@@ -54,10 +52,9 @@
 
 <main>
 
-<!-- Market -->
 <section class="page active" id="page-market">
   <h2 class="section-title" data-i18n="market_title">🛒 Live Marketplace</h2>
-  <p class="section-sub" data-i18n="market_sub">Buy & sell directly — no middlemen.</p>
+  <p class="section-sub" data-i18n="market_sub">Buy & sell directly.</p>
   <div class="ticker"><div class="ticker-track" id="tickerTrack"></div></div>
   <div class="grid cols-3" id="statsRow">
     <div class="stat"><div class="num" id="statListings">0</div><div class="lbl" data-i18n="stat_listings">Active Listings</div></div>
@@ -67,15 +64,13 @@
   <div style="display:flex;gap:8px;margin:14px 0;flex-wrap:wrap">
     <input type="text" id="searchBox" data-i18n-ph="search_ph" placeholder="🔍 Search..." oninput="renderListings()" style="flex:1;min-width:200px">
     <select id="filterCat" onchange="renderListings()" style="max-width:180px">
-      <option value="" data-i18n="all_cats">All Categories</option>
-      <option data-i18n="cat_crops">Crops & Horticulture</option>
-      <option data-i18n="cat_livestock">Livestock</option>
-      <option data-i18n="cat_inputs">Inputs & Seeds</option>
-      <option data-i18n="cat_machinery">Machinery Rental</option>
-      <option data-i18n="cat_charcoal">Biomass / Charcoal</option>
+      <option value="">All Categories</option>
+      <option>Crops & Horticulture</option><option>Livestock</option>
+      <option>Inputs & Seeds</option><option>Machinery Rental</option>
+      <option>Biomass / Charcoal</option>
     </select>
     <select id="filterRegion" onchange="renderListings()" style="max-width:180px">
-      <option value="" data-i18n="all_regions">All Regions</option>
+      <option value="">All Regions</option>
       <option>Khomas</option><option>Otjozondjupa</option><option>Zambezi</option>
       <option>Erongo</option><option>Oshana</option><option>Kavango East</option>
       <option>Kavango West</option><option>Omusati</option><option>Omaheke</option>
@@ -86,10 +81,8 @@
   <div class="grid cols-3" id="listingsGrid"></div>
 </section>
 
-<!-- Sell -->
 <section class="page" id="page-sell">
   <h2 class="section-title" data-i18n="sell_title">📸 Post a New Listing</h2>
-  <p class="section-sub" data-i18n="sell_sub">Up to 10 photos.</p>
   <div class="card">
     <label data-i18n="form_title">Product Title *</label><input type="text" id="newTitle">
     <label data-i18n="form_cat">Category *</label>
@@ -107,7 +100,7 @@
     </div>
     <div class="grid cols-2">
       <div><label data-i18n="form_price">Price (N$) *</label><input type="number" id="newPrice"></div>
-      <div><label data-i18n="form_priceper">Price per</label>
+      <div><label>Price per</label>
         <select id="newPricePer"><option>per unit</option><option>per kg</option><option>per bag</option><option>per head</option><option>per ton</option></select>
       </div>
     </div>
@@ -125,16 +118,14 @@
     </div>
     <label data-i18n="form_badge">Compliance Badge</label>
     <select id="newBadge">
-      <option value="" data-i18n="badge_none">None</option>
+      <option value="">None</option>
       <option value="NamLITS Ear Tag">NamLITS Ear Tag</option>
       <option value="NAB Permit">NAB Permit</option>
       <option value="Organic Certified">Organic Certified</option>
     </select>
     <label data-i18n="form_delivery">Delivery</label>
     <select id="newDelivery">
-      <option data-i18n="del_pickup">Pickup only</option>
-      <option data-i18n="del_buyer">Delivery available (buyer pays)</option>
-      <option data-i18n="del_incl">Delivery included</option>
+      <option>Pickup only</option><option>Delivery available (buyer pays)</option><option>Delivery included</option>
     </select>
     <label data-i18n="form_photos">📷 Photos (up to 10)</label>
     <input type="file" id="newPhotos" accept="image/*" multiple>
@@ -143,7 +134,6 @@
   </div>
 </section>
 
-<!-- Soil -->
 <section class="page" id="page-soil">
   <h2 class="section-title" data-i18n="soil_title">🧪 Soil AI</h2>
   <div class="card">
@@ -152,13 +142,12 @@
       <h3 style="margin:8px 0" data-i18n="soil_scan">Tap to Scan Soil</h3>
     </div>
     <div style="margin-top:14px">
-      <button class="btn outline small" data-i18n="btn_manual" onclick="openModal('manualSoilModal')">✍️ Manual Readings</button>
+      <button class="btn outline small" onclick="openModal('manualSoilModal')">✍️ Manual Readings</button>
     </div>
     <div class="scan-result" id="soilResult"></div>
   </div>
 </section>
 
-<!-- Virus -->
 <section class="page" id="page-virus">
   <h2 class="section-title" data-i18n="virus_title">🦠 Virus Scanner</h2>
   <div class="card">
@@ -169,41 +158,34 @@
     <div class="scan-result" id="virusResult"></div>
   </div>
   <div class="card">
-    <h3 style="margin-bottom:10px" data-i18n="virus_alerts">🚨 Regional Outbreak Alerts</h3>
+    <h3 style="margin-bottom:10px">🚨 Regional Outbreak Alerts</h3>
     <div id="outbreakAlerts"></div>
   </div>
 </section>
 
-<!-- Water -->
 <section class="page" id="page-water">
   <h2 class="section-title" data-i18n="water_title">💧 Water & Drip</h2>
   <div class="card">
     <div class="grid cols-2">
       <div><label data-i18n="lbl_crop">Crop</label>
         <select id="wCrop" onchange="calcWater()">
-          <option value="maize" data-i18n="crop_maize">Maize</option>
-          <option value="wheat" data-i18n="crop_wheat">Wheat</option>
-          <option value="tomato" data-i18n="crop_tomato">Tomato</option>
-          <option value="onion" data-i18n="crop_onion">Onion</option>
-          <option value="potato" data-i18n="crop_potato">Potato</option>
-          <option value="grapes" data-i18n="crop_grapes">Grapes</option>
-          <option value="pasture" data-i18n="crop_pasture">Pasture / Lucerne</option>
+          <option value="maize">Maize</option><option value="wheat">Wheat</option>
+          <option value="tomato">Tomato</option><option value="onion">Onion</option>
+          <option value="potato">Potato</option><option value="grapes">Grapes</option>
+          <option value="pasture">Pasture</option>
         </select>
       </div>
       <div><label data-i18n="lbl_area">Area (ha)</label><input type="number" id="wArea" value="1" step="0.1" oninput="calcWater()"></div>
       <div><label data-i18n="lbl_soil">Soil</label>
         <select id="wSoil" onchange="calcWater()">
-          <option value="sandy" data-i18n="soil_sandy">Sandy</option>
-          <option value="clay" data-i18n="soil_clay">Clay</option>
-          <option value="loam" selected data-i18n="soil_loam">Loam</option>
+          <option value="sandy">Sandy</option><option value="clay">Clay</option>
+          <option value="loam" selected>Loam</option>
         </select>
       </div>
       <div><label data-i18n="lbl_stage">Stage</label>
         <select id="wStage" onchange="calcWater()">
-          <option value="0.5" data-i18n="stage_seedling">Seedling</option>
-          <option value="1" selected data-i18n="stage_vegetative">Vegetative</option>
-          <option value="1.2" data-i18n="stage_flowering">Flowering</option>
-          <option value="0.8" data-i18n="stage_maturity">Maturity</option>
+          <option value="0.5">Seedling</option><option value="1" selected>Vegetative</option>
+          <option value="1.2">Flowering</option><option value="0.8">Maturity</option>
         </select>
       </div>
     </div>
@@ -211,55 +193,52 @@
   </div>
 </section>
 
-<!-- Weather -->
 <section class="page" id="page-weather">
   <h2 class="section-title" data-i18n="weather_title">🌦️ Agro-Weather</h2>
   <div class="grid cols-3" id="weatherGrid"></div>
   <div class="card" style="margin-top:14px">
-    <h3 style="margin-bottom:10px" data-i18n="ndvi_title">🛰️ NDVI — Crop Health</h3>
+    <h3 style="margin-bottom:10px">🛰️ NDVI — Crop Health</h3>
     <div id="ndviBars"></div>
   </div>
 </section>
 
-<!-- RFQ -->
 <section class="page" id="page-rfq">
   <h2 class="section-title" data-i18n="rfq_title">📢 RFQs & Ticker</h2>
   <div class="card">
-    <h3 style="margin-bottom:10px" data-i18n="rfq_post">Post an RFQ</h3>
-    <label data-i18n="rfq_what">What do you need?</label><input type="text" id="rfqItem">
-    <label data-i18n="rfq_region">Region</label>
+    <h3 style="margin-bottom:10px">Post an RFQ</h3>
+    <label>What do you need?</label><input type="text" id="rfqItem">
+    <label>Region</label>
     <select id="rfqRegion">
       <option>Khomas</option><option>Erongo</option><option>Otjozondjupa</option>
       <option>Zambezi</option><option>Oshana</option><option>Kavango East</option>
     </select>
-    <label data-i18n="rfq_budget">Budget (N$)</label><input type="number" id="rfqBudget">
-    <button class="btn block" style="margin-top:12px" data-i18n="btn_post_rfq" onclick="postRFQ()">📤 Post RFQ</button>
+    <label>Budget (N$)</label><input type="number" id="rfqBudget">
+    <button class="btn block" style="margin-top:12px" onclick="postRFQ()">📤 Post RFQ</button>
   </div>
   <div id="rfqList"></div>
   <div class="card" style="margin-top:14px">
-    <h3 style="margin-bottom:10px" data-i18n="rfq_trends">📊 Price Trends</h3>
+    <h3 style="margin-bottom:10px">📊 Price Trends</h3>
     <div id="priceTrends"></div>
   </div>
 </section>
 
-<!-- Community -->
 <section class="page" id="page-community">
   <h2 class="section-title" data-i18n="talk_title">💬 Agri-Talk</h2>
   <div class="grid cols-2">
     <div class="card">
-      <h3 data-i18n="talk_feed">🗣️ Agri-Talk Feed</h3>
+      <h3>🗣️ Agri-Talk Feed</h3>
       <div style="margin-top:10px">
-        <textarea id="talkInput" rows="2" data-i18n-ph="talk_ph" placeholder="Share advice..."></textarea>
+        <textarea id="talkInput" rows="2" placeholder="Share advice..."></textarea>
         <div style="display:flex;gap:6px;margin-top:8px">
-          <button class="btn small" data-i18n="btn_post" onclick="postTalk()">Post</button>
+          <button class="btn small" onclick="postTalk()">Post</button>
         </div>
       </div>
       <div id="talkFeed" style="margin-top:12px"></div>
     </div>
     <div class="card">
-      <h3 data-i18n="leaderboard">🏆 Farmer Leaderboard</h3>
+      <h3>🏆 Farmer Leaderboard</h3>
       <div id="leaderboard" style="margin-top:10px"></div>
-      <h3 style="margin-top:16px" data-i18n="emergency">🚨 Emergency Hotlines</h3>
+      <h3 style="margin-top:16px">🚨 Emergency Hotlines</h3>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
         <a class="btn danger small" href="tel:+264811111111">📞 Vet</a>
         <a class="btn danger small" href="tel:+264811222333">🚒 Veld Fire</a>
@@ -269,9 +248,8 @@
   </div>
 </section>
 
-<!-- USSD -->
 <section class="page" id="page-ussd">
-  <h2 class="section-title" data-i18n="ussd_title">📱 USSD Gateway</h2>
+  <h2 class="section-title">📱 USSD Gateway (*555#)</h2>
   <div class="card">
     <pre id="ussdScreen" style="background:#111;color:#0f0;padding:14px;border-radius:10px;font-size:14px;line-height:1.6;white-space:pre-wrap"></pre>
     <input type="text" id="ussdInput" placeholder="1 or 1*2" style="margin-top:10px">
@@ -279,25 +257,22 @@
   </div>
 </section>
 
-<!-- Orders -->
 <section class="page" id="page-orders">
   <h2 class="section-title" data-i18n="orders_title">📦 My Orders</h2>
   <div class="card" id="myOrdersContent"></div>
 </section>
 
-<!-- Wallet -->
 <section class="page" id="page-wallet">
   <h2 class="section-title" data-i18n="wallet_title">💰 My Wallet</h2>
   <div class="card" id="walletContent"></div>
 </section>
 
-<!-- Track -->
 <section class="page" id="page-track">
   <h2 class="section-title" data-i18n="track_title">🚚 Track Order</h2>
   <div class="card">
-    <label data-i18n="track_code">Enter your tracking code</label>
+    <label>Enter your tracking code</label>
     <input type="text" id="trackingCode" placeholder="NGC-XXXX-XXXX">
-    <button class="btn block" style="margin-top:12px" data-i18n="btn_track" onclick="trackOrder()">Track</button>
+    <button class="btn block" style="margin-top:12px" onclick="trackOrder()">Track</button>
     <div id="trackingResult" style="margin-top:20px;display:none"></div>
   </div>
 </section>
@@ -305,39 +280,38 @@
 </main>
 
 <div class="bottom-nav">
-  <button class="active" data-page="market" data-i18n="tab_market_short"><i>🛒</i>Market</button>
-  <button data-page="sell" data-i18n="tab_sell_short"><i>➕</i>Sell</button>
-  <button data-page="wallet" data-i18n="tab_wallet_short"><i>💰</i>Wallet</button>
-  <button data-page="orders" data-i18n="tab_orders_short"><i>📦</i>Orders</button>
+  <button class="active" data-page="market"><i>🛒</i>Market</button>
+  <button data-page="sell"><i>➕</i>Sell</button>
+  <button data-page="wallet"><i>💰</i>Wallet</button>
+  <button data-page="orders"><i>📦</i>Orders</button>
 </div>
 
-<!-- Modals -->
 <div class="modal" id="checkoutModal" style="z-index: 9999;">
   <div class="box">
-    <h3 style="margin-bottom:16px" data-i18n="checkout_title">🛒 Complete Your Order</h3>
+    <h3 style="margin-bottom:16px">🛒 Complete Your Order</h3>
     <div id="checkoutSummary" style="background:rgba(0,0,0,0.05);padding:12px;border-radius:10px;margin-bottom:16px"></div>
-    <label data-i18n="checkout_qty">Quantity</label>
+    <label>Quantity</label>
     <input type="number" id="checkoutQty" placeholder="e.g. 5" style="margin-bottom:12px">
-    <label data-i18n="checkout_address">Delivery Address</label>
+    <label>Delivery Address</label>
     <input type="text" id="checkoutAddress" placeholder="Street, Town, Region" style="margin-bottom:12px">
     <div id="checkoutError" style="color:var(--danger);font-size:13px;display:none;margin-bottom:12px"></div>
-    <button class="btn block" data-i18n="btn_confirm_pay" onclick="submitCheckout()">✅ Confirm & Pay</button>
-    <button class="btn outline block" style="margin-top:8px" data-i18n="btn_cancel" onclick="closeModal('checkoutModal')">Cancel</button>
+    <button class="btn block" onclick="submitCheckout()">✅ Confirm & Pay</button>
+    <button class="btn outline block" style="margin-top:8px" onclick="closeModal('checkoutModal')">Cancel</button>
   </div>
 </div>
 
 <div class="modal" id="authModal">
   <div class="box">
     <h3 id="authTitle">🔐 Login</h3>
-    <label data-i18n="lbl_phone">Phone Number *</label>
+    <label>Phone Number *</label>
     <input type="tel" id="authPhone" placeholder="+264812345678">
     <div id="registerOnly" style="display:none">
-      <label data-i18n="lbl_name">Your Name *</label>
+      <label>Your Name *</label>
       <input type="text" id="authName" placeholder="Full name">
-      <label data-i18n="lbl_region">Region</label>
+      <label>Region</label>
       <input type="text" id="authRegion" placeholder="Region">
     </div>
-    <label data-i18n="lbl_password">Password *</label>
+    <label>Password *</label>
     <input type="password" id="authPassword">
     <button class="btn block" style="margin-top:16px" id="authSubmit" onclick="submitAuth()">Login</button>
     <p style="text-align:center;margin-top:12px;font-size:13px">
@@ -360,7 +334,7 @@
 
 <div class="modal" id="manualSoilModal">
   <div class="box">
-    <h3 data-i18n="manual_soil_title">✍️ Manual Soil Readings</h3>
+    <h3>✍️ Manual Soil Readings</h3>
     <label>pH</label><input type="number" id="mPh" value="6.2" step="0.1">
     <label>EC</label><input type="number" id="mEc" value="1.1" step="0.1">
     <label>N</label><input type="number" id="mN" value="22">
