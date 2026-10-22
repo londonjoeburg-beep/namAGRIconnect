@@ -8,11 +8,12 @@
 <link rel="icon" type="image/png" href="img/logo-icon.png">
 <link rel="apple-touch-icon" href="img/logo-icon.png">
 <link rel="manifest" href="manifest.json" />
-<link rel="stylesheet" href="css/main.css?v=5" />
-<link rel="stylesheet" href="css/dark.css?v=5" />
+<link rel="stylesheet" href="css/main.css?v=6" />
+<link rel="stylesheet" href="css/dark.css?v=6" />
 </head>
 <body>
 
+<!-- HEADER -->
 <header>
   <div class="header-top">
     <div class="logo">
@@ -29,13 +30,14 @@
         <option value="kho">🇳🇦 Khoekhoegowab</option>
         <option value="siz">🇳🇦 Silozi</option>
       </select>
-      <button class="icon-btn" id="loginBtn" data-i18n="login" onclick="openAuth('login')">🔐 Login</button>
-<button class="icon-btn" id="logoutBtn" data-i18n="logout" onclick="logout()" style="display:none; background:#c0392b !important; color:white !important; border:none;">⏻ Logout</button>
-<button class="icon-btn" data-i18n="sell" onclick="requireLogin('post a listing') && goTo('sell')">➕ Sell</button>
+      <!-- Single Login/Logout button -->
+      <button class="icon-btn" id="authBtn" onclick="handleAuthClick()">🔐 Login</button>
+      <button class="icon-btn" onclick="requireLogin('post a listing') && goTo('sell')">➕ Sell</button>
     </div>
   </div>
 </header>
 
+<!-- TABS -->
 <nav class="tabs">
   <button class="tab active" data-page="market">🛒 Market</button>
   <button class="tab" data-page="sell">📸 Post Listing</button>
@@ -50,16 +52,12 @@
   <button class="tab" data-page="wallet">💰 Wallet</button>
   <button class="tab" data-page="track">🚚 Track Order</button>
 </nav>
-</nav>
 
+<!-- MAIN CONTENT -->
 <main>
 
+<!-- Market -->
 <section class="page active" id="page-market">
-
-<h2 class="section-title" data-i18n="market_title">🛒 Live Marketplace</h2>
-<h2 class="section-title" data-i18n="sell_title">📸 Post a New Listing</h2>
-<h2 class="section-title" data-i18n="soil_title">🧪 AI Soil Condition & Nutrient Scanner</h2>
-<!-- Add data-i18n to the rest of the titles too -->
   <h2 class="section-title">🛒 Live Marketplace</h2>
   <p class="section-sub">Buy & sell directly — no middlemen.</p>
   <div class="ticker"><div class="ticker-track" id="tickerTrack"></div></div>
@@ -88,6 +86,7 @@
   <div class="grid cols-3" id="listingsGrid"></div>
 </section>
 
+<!-- Sell -->
 <section class="page" id="page-sell">
   <h2 class="section-title">📸 Post a New Listing</h2>
   <p class="section-sub">Up to 10 photos. Buyers contact you on WhatsApp.</p>
@@ -142,6 +141,7 @@
   </div>
 </section>
 
+<!-- Soil -->
 <section class="page" id="page-soil">
   <h2 class="section-title">🧪 AI Soil Condition & Nutrient Scanner</h2>
   <div class="card">
@@ -156,6 +156,7 @@
   </div>
 </section>
 
+<!-- Virus -->
 <section class="page" id="page-virus">
   <h2 class="section-title">🦠 AI Plant Virus & Disease Scanner</h2>
   <div class="card">
@@ -171,6 +172,7 @@
   </div>
 </section>
 
+<!-- Water -->
 <section class="page" id="page-water">
   <h2 class="section-title">💧 Smart Water & Irrigation Calculator</h2>
   <div class="card">
@@ -201,6 +203,7 @@
   </div>
 </section>
 
+<!-- Weather -->
 <section class="page" id="page-weather">
   <h2 class="section-title">🌦️ Agro-Weather Intelligence</h2>
   <div class="grid cols-3" id="weatherGrid"></div>
@@ -210,6 +213,7 @@
   </div>
 </section>
 
+<!-- RFQ -->
 <section class="page" id="page-rfq">
   <h2 class="section-title">📢 RFQs & Shortage Ticker</h2>
   <div class="card">
@@ -230,6 +234,7 @@
   </div>
 </section>
 
+<!-- Community -->
 <section class="page" id="page-community">
   <h2 class="section-title">💬 Agri-Talk & Community</h2>
   <div class="grid cols-2">
@@ -256,6 +261,7 @@
   </div>
 </section>
 
+<!-- USSD -->
 <section class="page" id="page-ussd">
   <h2 class="section-title">📱 USSD Gateway (*555#)</h2>
   <div class="card">
@@ -265,16 +271,19 @@
   </div>
 </section>
 
+<!-- Orders -->
 <section class="page" id="page-orders">
   <h2 class="section-title">📦 My Orders</h2>
   <div class="card" id="myOrdersContent"></div>
 </section>
 
+<!-- Wallet -->
 <section class="page" id="page-wallet">
   <h2 class="section-title">💰 My Wallet</h2>
   <div class="card" id="walletContent"></div>
 </section>
 
+<!-- Track -->
 <section class="page" id="page-track">
   <h2 class="section-title">🚚 Track Order</h2>
   <div class="card">
@@ -287,6 +296,7 @@
 
 </main>
 
+<!-- BOTTOM NAV -->
 <div class="bottom-nav">
   <button class="active" data-page="market"><i>🛒</i>Market</button>
   <button data-page="sell"><i>➕</i>Sell</button>
@@ -294,9 +304,7 @@
   <button data-page="orders"><i>📦</i>Orders</button>
 </div>
 
-<!-- ══════════ MODALS ══════════ -->
-
-<!-- 1. Checkout Modal (Buy Now) -->
+<!-- MODALS -->
 <div class="modal" id="checkoutModal" style="z-index: 9999;">
   <div class="box">
     <h3 style="margin-bottom:16px">🛒 Complete Your Order</h3>
@@ -311,7 +319,6 @@
   </div>
 </div>
 
-<!-- 2. Auth Modal (Login/Register) -->
 <div class="modal" id="authModal">
   <div class="box">
     <h3 id="authTitle">🔐 Login</h3>
@@ -319,13 +326,11 @@
     <input type="tel" id="authPhone" placeholder="+264812345678">
     <div id="registerOnly" style="display:none">
       <label>Your Name *</label>
-      <input type="text" id="authName" placeholder="e.g. Kambwa Petrus">
+      <input type="text" id="authName" placeholder="Full name">
       <label>Region</label>
-      <input type="text" id="authRegion" placeholder="e.g. Kavango East">
-      <label>Town</label>
-      <input type="text" id="authTown" placeholder="e.g. Rundu">
+      <input type="text" id="authRegion" placeholder="Region">
     </div>
-    <label>Password * (min 6 chars)</label>
+    <label>Password *</label>
     <input type="password" id="authPassword">
     <button class="btn block" style="margin-top:16px" id="authSubmit" onclick="submitAuth()">Login</button>
     <p style="text-align:center;margin-top:12px;font-size:13px">
@@ -335,40 +340,36 @@
   </div>
 </div>
 
-<!-- 3. Comments Modal -->
 <div class="modal" id="commentModal">
   <div class="box">
     <h3 id="commentTitle">💬 Comments</h3>
     <div id="commentList" style="margin:12px 0;max-height:300px;overflow-y:auto"></div>
-    <textarea id="commentInput" rows="2" placeholder="Ask about delivery, price..."></textarea>
+    <textarea id="commentInput" rows="2" placeholder="Ask about delivery..."></textarea>
     <div style="display:flex;gap:6px;margin-top:8px">
       <button class="btn small" onclick="postComment()">Post Comment</button>
     </div>
   </div>
 </div>
 
-<!-- 4. Manual Soil Modal -->
 <div class="modal" id="manualSoilModal">
   <div class="box">
     <h3>✍️ Manual Soil Readings</h3>
     <label>pH</label><input type="number" id="mPh" value="6.2" step="0.1">
-    <label>EC (dS/m)</label><input type="number" id="mEc" value="1.1" step="0.1">
-    <label>N (ppm)</label><input type="number" id="mN" value="22">
-    <label>P (ppm)</label><input type="number" id="mP" value="14">
-    <label>K (ppm)</label><input type="number" id="mK" value="110">
+    <label>EC</label><input type="number" id="mEc" value="1.1" step="0.1">
+    <label>N</label><input type="number" id="mN" value="22">
+    <label>P</label><input type="number" id="mP" value="14">
+    <label>K</label><input type="number" id="mK" value="110">
     <button class="btn block" style="margin-top:12px" onclick="runManualSoil()">Analyze</button>
   </div>
 </div>
 
-<!-- 5. Deposit Modal -->
 <div class="modal" id="depositModal">
   <div class="box"></div>
 </div>
 
-<!-- Toast Notification -->
 <div class="toast" id="toast"></div>
 
-<!-- ══════════ SCRIPTS ══════════ -->
+<!-- SCRIPTS -->
 <script src="js/app.js"></script>
 <script src="js/i18n.js?v=5"></script>
 <script src="js/api.js"></script>
