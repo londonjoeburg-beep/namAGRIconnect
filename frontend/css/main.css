@@ -560,3 +560,93 @@ header {
     gap: 10px !important;
   }
 }
+
+/* ══════════════════════════════════════════════════
+   MOBILE TABS — Make them swipeable and visible
+   ══════════════════════════════════════════════════ */
+
+/* Make sure tabs container allows horizontal swipe */
+nav.tabs {
+  display: flex !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  scroll-behavior: smooth !important;
+  flex-wrap: nowrap !important;
+  padding: 8px 12px !important;
+  gap: 6px !important;
+}
+
+/* Bigger scrollbar (invisible but functional) */
+nav.tabs::-webkit-scrollbar {
+  height: 6px;
+}
+
+nav.tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+nav.tabs::-webkit-scrollbar-thumb {
+  background: rgba(18, 147, 79, 0.4);
+  border-radius: 99px;
+}
+
+/* Make tabs have minimum width so they're tappable */
+.tab {
+  flex: 0 0 auto !important;
+  min-width: 100px !important;
+  padding: 8px 14px !important;
+  font-size: 12px !important;
+}
+
+/* ══════════════════════════════════════════════════
+   MOBILE BOTTOM NAV — Show ALL nav buttons in 2 rows
+   ══════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .bottom-nav {
+    display: flex !important;
+    justify-content: space-around !important;
+    padding: 8px 4px !important;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 4px)) !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+  
+  .bottom-nav button {
+    flex: 0 0 auto !important;
+    min-width: 70px !important;
+    padding: 6px 8px !important;
+    font-size: 10px !important;
+  }
+  
+  .bottom-nav button i {
+    font-size: 18px !important;
+  }
+
+  /* Add a horizontal scroll hint */
+  nav.tabs::after {
+    content: '→ Swipe →';
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    color: rgba(11, 107, 58, 0.5);
+    pointer-events: none;
+    padding: 2px 8px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 8px;
+    z-index: 10;
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   SMOOTH SCROLLING INSIDE THE APP
+   ══════════════════════════════════════════════════ */
+
+main {
+  -webkit-overflow-scrolling: touch !important;
+  scroll-behavior: smooth !important;
+}
