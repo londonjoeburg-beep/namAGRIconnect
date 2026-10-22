@@ -43,9 +43,9 @@ const TRANSLATIONS = {
   },
   osh: {
     app_name: 'NamAgriConnect — Namibia',
-    login: '🔐 Ehololo', logout: '⏻ Piti', sell_btn: '➕ Landifa',
+    login: '🔐 Djamo', logout: '⏻ Piti', sell_btn: '➕ Landifa',
     tab_market: '🛒 Omatala', tab_sell: '📸 Landifa', tab_soil: '🧪 Evhu AI',
-    tab_virus: '🦠 Omukithi', tab_water: '💧 Omeva', tab_weather: '🌦️ Ombuze',
+    tab_virus: '🦠 Omukithi', tab_water: '💧 Omeva', tab_weather: '🌦️ Onghalo yomepo',
     tab_rfq: '📢 Omapulo', tab_talk: '💬 Omukunda', tab_ussd: '📱 USSD',
     tab_orders: '📦 Iilonga', tab_wallet: '💰 Oimaliwa', tab_track: '🚚 Landa',
     tab_market_short: '🛒 Omatala', tab_sell_short: '➕ Landifa', tab_wallet_short: '💰 Oimaliwa', tab_orders_short: '📦 Iilonga',
