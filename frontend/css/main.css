@@ -492,3 +492,71 @@ nav.tabs {
   margin-bottom: 10px !important;
   font-size: 11px !important;
 }
+
+/* ══════════════════════════════════════════════════
+   MOBILE SAFE AREA — Fix status bar and bottom bar
+   ══════════════════════════════════════════════════ */
+
+/* Push the header down below the phone's status bar */
+body {
+  padding-top: env(safe-area-inset-top, 24px) !important;
+  padding-bottom: env(safe-area-inset-bottom, 16px) !important;
+}
+
+/* Make sure header stays sticky below the safe area */
+header {
+  top: env(safe-area-inset-top, 0) !important;
+}
+
+/* Fix bottom nav so buttons are easy to press */
+.bottom-nav {
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 8px)) !important;
+}
+
+/* ══════════════════════════════════════════════════
+   FIX THE STATS ROW — Make it 3 columns on mobile
+   ══════════════════════════════════════════════════ */
+
+/* Force the stats into 3 columns, even on small screens */
+#statsRow {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr 1fr !important;
+  gap: 8px !important;
+}
+
+.stat {
+  padding: 8px 4px !important;
+}
+.stat .num {
+  font-size: 16px !important;
+}
+.stat .lbl {
+  font-size: 9px !important;
+  line-height: 1.2 !important;
+}
+
+/* ══════════════════════════════════════════════════
+   TIGHTEN SEARCH + FILTERS on mobile
+   ══════════════════════════════════════════════════ */
+
+@media (max-width: 600px) {
+  /* Search and filters side by side */
+  #searchBox {
+    min-width: 100% !important;
+  }
+  #filterCat, #filterRegion {
+    max-width: 48% !important;
+    flex: 1 !important;
+  }
+
+  /* Smaller image height for product cards */
+  .listing .photos {
+    height: 120px !important;
+  }
+  
+  /* Make the grid stack products properly */
+  .grid.cols-3 {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+}
