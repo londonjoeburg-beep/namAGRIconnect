@@ -114,7 +114,11 @@ async function gateSubmit() {
     const endpoint = gateMode === 'login' ? '/auth/login' : '/auth/register';
     const payload = gateMode === 'login' ? { phone, password } : { phone, name, region, password };
 
-    const response = await fetch('http://localhost:4000/api' + endpoint, {
+       const baseUrl = window.location.hostname === 'localhost' 
+      ? 'http://localhost:4000' 
+      : 'https://namagriconnect-3.onrender.com';
+
+    const response = await fetch(baseUrl + '/api' + endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)

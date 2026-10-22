@@ -1,6 +1,11 @@
 (function() {
-  const API_BASE = 'http://localhost:4000/api';
+  const API_BASE = window.location.hostname === 'localhost'
+    ? 'http://localhost:4000/api'
+    : 'https://namagriconnect-3.onrender.com/api';
+
   console.log('🔗 API base:', API_BASE);
+  
+  // ... rest of the file ...
 
   function getToken() { return localStorage.getItem('token'); }
   function headers(extra = {}) {
