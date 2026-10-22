@@ -43,7 +43,7 @@ const TRANSLATIONS = {
   },
   osh: {
     app_name: 'NamAgriConnect — Namibia',
-    login: '🔐 Djamo', logout: '⏻ Piti', sell_btn: '➕ Landifa',
+    login: '🔐 Djamo', logout: 'Djamo', sell_btn: '➕ Landifa',
     tab_market: '🛒 Omatala', tab_sell: '📸 Landifa', tab_soil: '🧪 Evhu AI',
     tab_virus: '🦠 Omukithi', tab_water: '💧 Omeva', tab_weather: '🌦️ Onghalo yomepo',
     tab_rfq: '📢 Omapulo', tab_talk: '💬 Omukunda', tab_ussd: '📱 USSD',
