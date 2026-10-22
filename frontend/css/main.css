@@ -359,3 +359,39 @@ input:focus,select:focus,textarea:focus{
 .action-btn.wa { background: linear-gradient(135deg, #25D366, #128C7E); }
 .action-btn.call { background: linear-gradient(135deg, #2980b9, #1c5a87); }
 .action-btn.sms { background: linear-gradient(135deg, #e8b73a, #f2c94c); color: #3a2a00; }
+
+/* ══════════════════════════════════════════════════
+   BRIGHT & CLEAR BACKGROUND FIX
+   ══════════════════════════════════════════════════ */
+
+/* Light mode — make image brighter and clearer */
+body {
+  /* Reduced overlay from 0.85 to 0.25 (much brighter) */
+  background: linear-gradient(rgba(244, 247, 243, 0.25), rgba(244, 247, 243, 0.25)), 
+              url('../img/farm-bg.jpg') center/cover no-repeat fixed !important;
+  background-size: cover !important;
+}
+
+/* Dark mode — still dark, but image is visible */
+[data-theme="dark"] body {
+  background: linear-gradient(rgba(10, 15, 12, 0.65), rgba(10, 15, 12, 0.65)), 
+              url('../img/farm-bg.jpg') center/cover no-repeat fixed !important;
+}
+
+/* Optional: Add a slight blur to the background image only */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: url('../img/farm-bg.jpg') center/cover no-repeat;
+  filter: blur(2px); /* Very light blur */
+  z-index: -2;
+  opacity: 0.6; /* Blend it with the overlay */
+}
+
+/* Make sure the cards stay readable (slightly more opaque glass) */
+.card, .listing, .stat, .talk-item {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.9) !important;
+}
