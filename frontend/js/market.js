@@ -1,5 +1,6 @@
 /* ══════════════════════════════════════════════════
    MARKET.JS — Complete with order received + archive
+   No duplicates. No orphan code. Clean.
    ══════════════════════════════════════════════════ */
 
 let listingsCache = [];
@@ -15,7 +16,7 @@ function getApiBase() {
 }
 
 /* ══════════════════════════════════════════════════
-   PHOTO HANDLER
+   PHOTO HANDLER — clean, no duplicates
    ══════════════════════════════════════════════════ */
 
 async function handlePhotoSelect(event) {
@@ -32,13 +33,12 @@ async function handlePhotoSelect(event) {
     return;
   }
 
-  // 🔥 Prevent duplicate files from being added twice
   console.log('📸 Files selected:', files.length);
   files.forEach((f, i) => {
-    console.log(`   ${i+1}. ${f.name} — ${(f.size / 1024 / 1024).toFixed(2)}MB`);
+    console.log(`   ${i + 1}. ${f.name} — ${(f.size / 1024 / 1024).toFixed(2)}MB`);
   });
 
-  // 🔥 CLEAR existing photos — start fresh
+  // Clear existing photos — start fresh
   uploadedPhotos = [];
 
   if (files.length > 10) {
@@ -46,21 +46,10 @@ async function handlePhotoSelect(event) {
   }
 
   const limited = files.slice(0, 10);
-
   preview.innerHTML = '<div style="padding:12px;font-size:13px;color:var(--muted)"><span class="spinner"></span> Compressing photos...</div>';
 
   for (let i = 0; i < limited.length; i++) {
     const file = limited[i];
-    // 🔥 Check if file already exists (by name + size)
-    const isDuplicate = uploadedPhotos.some(p => 
-      p.file && p.file.name === file.name && p.file.size === file.size
-    );
-    
-    if (isDuplicate) {
-      console.log(`⏭️ Skipping duplicate: ${file.name}`);
-      continue;
-    }
-
     try {
       const dataUrl = await compressImage(file, 800, 0.7);
       uploadedPhotos.push({ dataUrl, file });
@@ -78,27 +67,6 @@ async function handlePhotoSelect(event) {
 
   renderPhotoPreviews();
   console.log(`✅ ${uploadedPhotos.length} photos ready`);
-  toast(`✅ ${uploadedPhotos.length} photo${uploadedPhotos.length > 1 ? 's' : ''} ready`);
-}
-
-  const limited = files.slice(0, 10);
-  uploadedPhotos = [];
-  preview.innerHTML = '<div style="padding:12px;font-size:13px;color:var(--muted)"><span class="spinner"></span> Compressing...</div>';
-
-  for (let i = 0; i < limited.length; i++) {
-    try {
-      const dataUrl = await compressImage(limited[i], 800, 0.7);
-      uploadedPhotos.push({ dataUrl, file: limited[i] });
-    } catch (e) {
-      try {
-        const dataUrl = await compressImage(limited[i], 600, 0.5);
-        uploadedPhotos.push({ dataUrl, file: limited[i] });
-      } catch (e2) {
-        toast(`⚠️ Photo ${i + 1} failed`);
-      }
-    }
-  }
-  renderPhotoPreviews();
   toast(`✅ ${uploadedPhotos.length} photo${uploadedPhotos.length > 1 ? 's' : ''} ready`);
 }
 
@@ -129,7 +97,8 @@ function compressImage(file, maxDim, quality) {
         if (w > h && w > maxDim) { h = h * maxDim / w; w = maxDim; }
         else if (h > maxDim) { w = w * maxDim / h; h = maxDim; }
         const canvas = document.createElement('canvas');
-        canvas.width = w; canvas.height = h;
+        canvas.width = w;
+        canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
         resolve(canvas.toDataURL('image/jpeg', quality));
       };
@@ -197,20 +166,13 @@ function renderListings() {
     try { photos = typeof l.photos === 'string' ? JSON.parse(l.photos) : (l.photos || []); } catch (err) { photos = []; }
 
     const photo = photos[0];
-   // Handle: base64 data URLs (new) vs /uploads paths (old) vs http URLs
-let photoUrl = null;
-if (photo) {
-  if (photo.startsWith('data:')) {
-    // Base64 data URL — use directly
-    photoUrl = photo;
-  } else if (photo.startsWith('http')) {
-    // Full URL — use directly
-    photoUrl = photo;
-  } else {
-    // Old /uploads path — prefix with API base
-    photoUrl = baseUrl + photo;
-  }
-}
+    let photoUrl = null;
+    if (photo) {
+      if (photo.startsWith('data:')) photoUrl = photo;
+      else if (photo.startsWith('http')) photoUrl = photo;
+      else photoUrl = baseUrl + photo;
+    }
+
     const sellerPhone = l.owner_phone || l.contact_phone || l.phone || '';
     const sellerName = l.owner_name || l.contact_name || 'Farmer';
     const sellerPhoneClean = sellerPhone.replace(/\D/g, '');
@@ -402,6 +364,8 @@ async function submitListing() {
     uploadedPhotos = [];
     const preview = document.getElementById('photoPreview');
     if (preview) preview.innerHTML = '';
+    const photoInput = document.getElementById('newPhotos');
+    if (photoInput) photoInput.value = '';
     ['newTitle', 'newQty', 'newPrice', 'newTown', 'newDesc'].forEach(function(id) {
       const el = document.getElementById(id);
       if (el) el.value = '';
@@ -415,7 +379,7 @@ async function submitListing() {
 }
 
 /* ══════════════════════════════════════════════════
-   MY ORDERS — with archive filter + confirm received
+   MY ORDERS
    ══════════════════════════════════════════════════ */
 
 async function renderMyOrders() {
@@ -434,7 +398,6 @@ async function renderMyOrders() {
       return;
     }
 
-    // Separate active and archived
     const active = orders.filter(o => !o.archived);
     const archived = orders.filter(o => o.archived);
 
@@ -610,13 +573,17 @@ async function trackOrder() {
 }
 
 /* ══════════════════════════════════════════════════
-   WIRE UP
+   WIRE UP — SINGLE listener (no duplicates)
    ══════════════════════════════════════════════════ */
 
 document.addEventListener('DOMContentLoaded', function() {
   const photoInput = document.getElementById('newPhotos');
   if (photoInput) {
-    photoInput.addEventListener('change', handlePhotoSelect);
+    // Remove any previous listeners by cloning (safety)
+    const newInput = photoInput.cloneNode(true);
+    photoInput.parentNode.replaceChild(newInput, photoInput);
+    newInput.addEventListener('change', handlePhotoSelect);
+    console.log('✅ Photo input wired to handlePhotoSelect');
   }
 });
 
@@ -645,4 +612,4 @@ if (document.readyState === 'loading') {
   loadListings();
 }
 
-console.log('✅ market.js loaded — with order received + archive');
+console.log('✅ market.js loaded — CLEAN version, no duplicates');
