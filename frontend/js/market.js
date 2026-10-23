@@ -21,9 +21,65 @@ function getApiBase() {
 async function handlePhotoSelect(event) {
   const files = Array.from(event.target.files || []);
   const preview = document.getElementById('photoPreview');
-  if (!preview) return;
-  if (files.length === 0) return;
-  if (files.length > 10) toast('⚠️ Max 10 photos');
+  
+  if (!preview) {
+    console.error('❌ photoPreview element not found');
+    return;
+  }
+
+  if (files.length === 0) {
+    console.log('No files selected');
+    return;
+  }
+
+  // 🔥 Prevent duplicate files from being added twice
+  console.log('📸 Files selected:', files.length);
+  files.forEach((f, i) => {
+    console.log(`   ${i+1}. ${f.name} — ${(f.size / 1024 / 1024).toFixed(2)}MB`);
+  });
+
+  // 🔥 CLEAR existing photos — start fresh
+  uploadedPhotos = [];
+
+  if (files.length > 10) {
+    toast('⚠️ Maximum 10 photos allowed');
+  }
+
+  const limited = files.slice(0, 10);
+
+  preview.innerHTML = '<div style="padding:12px;font-size:13px;color:var(--muted)"><span class="spinner"></span> Compressing photos...</div>';
+
+  for (let i = 0; i < limited.length; i++) {
+    const file = limited[i];
+    // 🔥 Check if file already exists (by name + size)
+    const isDuplicate = uploadedPhotos.some(p => 
+      p.file && p.file.name === file.name && p.file.size === file.size
+    );
+    
+    if (isDuplicate) {
+      console.log(`⏭️ Skipping duplicate: ${file.name}`);
+      continue;
+    }
+
+    try {
+      const dataUrl = await compressImage(file, 800, 0.7);
+      uploadedPhotos.push({ dataUrl, file });
+      console.log(`✅ Photo ${i + 1} ready`);
+    } catch (e) {
+      try {
+        const dataUrl = await compressImage(file, 600, 0.5);
+        uploadedPhotos.push({ dataUrl, file });
+        console.log(`✅ Photo ${i + 1} ready (fallback)`);
+      } catch (e2) {
+        toast(`⚠️ Photo ${i + 1} failed`);
+      }
+    }
+  }
+
+  renderPhotoPreviews();
+  console.log(`✅ ${uploadedPhotos.length} photos ready`);
+  toast(`✅ ${uploadedPhotos.length} photo${uploadedPhotos.length > 1 ? 's' : ''} ready`);
+}
 
   const limited = files.slice(0, 10);
   uploadedPhotos = [];
