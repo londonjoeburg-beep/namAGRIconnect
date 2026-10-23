@@ -141,7 +141,20 @@ function renderListings() {
     try { photos = typeof l.photos === 'string' ? JSON.parse(l.photos) : (l.photos || []); } catch (err) { photos = []; }
 
     const photo = photos[0];
-    const photoUrl = photo ? (photo.startsWith('http') ? photo : baseUrl + photo) : null;
+   // Handle: base64 data URLs (new) vs /uploads paths (old) vs http URLs
+let photoUrl = null;
+if (photo) {
+  if (photo.startsWith('data:')) {
+    // Base64 data URL — use directly
+    photoUrl = photo;
+  } else if (photo.startsWith('http')) {
+    // Full URL — use directly
+    photoUrl = photo;
+  } else {
+    // Old /uploads path — prefix with API base
+    photoUrl = baseUrl + photo;
+  }
+}
     const sellerPhone = l.owner_phone || l.contact_phone || l.phone || '';
     const sellerName = l.owner_name || l.contact_name || 'Farmer';
     const sellerPhoneClean = sellerPhone.replace(/\D/g, '');

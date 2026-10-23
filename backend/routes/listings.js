@@ -11,6 +11,7 @@ const router = Router();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOAD_DIR = path.join(__dirname, '..', '..', 'uploads');
 
+// GET /api/listings
 router.get('/', async (req, res) => {
   try {
     const { q = '', category = '', region = '', sold = 'false' } = req.query;
@@ -33,6 +34,7 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/listings/:id
 router.get('/:id', async (req, res) => {
   try {
     const result = await query(
@@ -46,19 +48,40 @@ router.get('/:id', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// POST /api/listings — convert photos to base64
 router.post('/', authMiddleware, upload.array('photos', 10), async (req, res) => {
   try {
     const photos = [];
+    
+    // Convert each uploaded photo to base64 data URL (stored in DB, no file system dependency)
     for (const file of req.files || []) {
       try {
-        const webpName = `${path.parse(file.filename).name}.webp`;
-        await sharp(file.path).resize(1000, 1000, { fit: 'inside' }).webp({ quality: 70 }).toFile(path.join(UPLOAD_DIR, webpName));
+        // Compress with sharp and convert to base64
+        const buffer = await sharp(file.path)
+          .resize(800, 800, { fit: 'inside' })
+          .webp({ quality: 70 })
+          .toBuffer();
+        
+        const base64 = `data:image/webp;base64,${buffer.toString('base64')}`;
+        photos.push(base64);
+        
+        // Delete the temp file
         await fs.unlink(file.path).catch(() => {});
-        photos.push(`/uploads/${webpName}`);
-      } catch {
-        photos.push(`/uploads/${file.filename}`);
+      } catch (sharpErr) {
+        console.error('⚠️ Sharp failed for', file.filename, sharpErr.message);
+        // Fallback: convert original file to base64
+        try {
+          const buffer = await fs.readFile(file.path);
+          const base64 = `data:${file.mimetype};base64,${buffer.toString('base64')}`;
+          photos.push(base64);
+          await fs.unlink(file.path).catch(() => {});
+        } catch (readErr) {
+          console.error('❌ Cannot read file:', readErr.message);
+        }
       }
     }
+
+    console.log(`📸 ${photos.length} photos processed`);
 
     const { title, category, description, quantity, unit, price, region, town, badge, delivery } = req.body;
     if (!title || !category || !quantity || !unit || !price || !region || !town) {
@@ -81,6 +104,7 @@ router.post('/', authMiddleware, upload.array('photos', 10), async (req, res) =>
     );
 
     const created = await query('SELECT * FROM listings WHERE id=?', [result.rows[0].id]);
+    console.log('✅ Listing created with', photos.length, 'base64 photos');
     res.status(201).json(created.rows[0]);
   } catch (e) {
     console.error('POST /listings:', e);
@@ -88,18 +112,19 @@ router.post('/', authMiddleware, upload.array('photos', 10), async (req, res) =>
   }
 });
 
+// POST /api/listings/:id/sold
 router.post('/:id/sold', authMiddleware, async (req, res) => {
   try {
     const check = await query('SELECT owner_id FROM listings WHERE id=?', [req.params.id]);
     if (!check.rows[0]) return res.status(404).json({ error: 'Listing not found' });
     if (check.rows[0].owner_id !== req.user.id) return res.status(403).json({ error: 'Not your listing' });
-
     await query('UPDATE listings SET sold=1, sold_at=CURRENT_TIMESTAMP WHERE id=?', [req.params.id]);
     const result = await query('SELECT * FROM listings WHERE id=?', [req.params.id]);
     res.json(result.rows[0]);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// DELETE /api/listings/:id
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const check = await query('SELECT owner_id FROM listings WHERE id=?', [req.params.id]);
