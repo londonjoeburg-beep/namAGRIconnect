@@ -8,6 +8,112 @@ let currentCheckoutListing = null;
 let currentListingIdForComments = null;
 let uploadedPhotos = [];
 
+/* ══════════════════════════════════════════════════
+   PHOTO UPLOAD HANDLER — Works on mobile & desktop
+   ══════════════════════════════════════════════════ */
+
+let uploadedPhotos = [];
+
+async function handlePhotoSelect(event) {
+  const files = Array.from(event.target.files || []);
+  const preview = document.getElementById('photoPreview');
+  
+  if (!preview) {
+    console.error('❌ photoPreview element not found');
+    return;
+  }
+
+  if (files.length === 0) {
+    console.log('No files selected');
+    return;
+  }
+
+  if (files.length > 10) {
+    toast('⚠️ Maximum 10 photos allowed. Only first 10 will be used.');
+  }
+
+  const limited = files.slice(0, 10);
+  uploadedPhotos = [];
+
+  // Show loading
+  preview.innerHTML = '<div style="padding:12px;font-size:13px;color:var(--muted)"><span class="spinner"></span> Processing photos...</div>';
+
+  // Process each photo
+  for (let i = 0; i < limited.length; i++) {
+    const file = limited[i];
+    try {
+      const dataUrl = await compressImage(file, 1000, 0.75);
+      uploadedPhotos.push({ dataUrl, file });
+      console.log(`✅ Photo ${i + 1} ready (${Math.round(dataUrl.length / 1024)}KB)`);
+    } catch (e) {
+      console.error(`❌ Photo ${i + 1} failed:`, e);
+      toast(`⚠️ Photo ${i + 1} could not be processed`);
+    }
+  }
+
+  // Render previews
+  preview.innerHTML = '';
+  uploadedPhotos.forEach((photo, idx) => {
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'position:relative;display:inline-block';
+    wrapper.innerHTML = `
+      <img src="${photo.dataUrl}" style="width:70px;height:70px;object-fit:cover;border-radius:10px;border:2px solid var(--green)">
+      <button type="button" onclick="removePhoto(${idx})" style="position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:var(--danger);color:white;border:none;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+    `;
+    preview.appendChild(wrapper);
+  });
+
+  console.log(`✅ ${uploadedPhotos.length} photos ready for upload`);
+  toast(`✅ ${uploadedPhotos.length} photo${uploadedPhotos.length > 1 ? 's' : ''} ready`);
+}
+
+function compressImage(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width, h = img.height;
+        if (w > h && w > maxDim) {
+          h = h * maxDim / w;
+          w = maxDim;
+        } else if (h > maxDim) {
+          w = w * maxDim / h;
+          h = maxDim;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => reject(new Error('Image load failed'));
+      img.src = ev.target.result;
+    };
+    reader.onerror = () => reject(new Error('File read failed'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function removePhoto(index) {
+  if (index >= 0 && index < uploadedPhotos.length) {
+    uploadedPhotos.splice(index, 1);
+    // Refresh preview
+    const preview = document.getElementById('photoPreview');
+    preview.innerHTML = '';
+    uploadedPhotos.forEach((photo, idx) => {
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'position:relative;display:inline-block';
+      wrapper.innerHTML = `
+        <img src="${photo.dataUrl}" style="width:70px;height:70px;object-fit:cover;border-radius:10px;border:2px solid var(--green)">
+        <button type="button" onclick="removePhoto(${idx})" style="position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:var(--danger);color:white;border:none;font-size:12px;font-weight:700;cursor:pointer">✕</button>
+      `;
+      preview.appendChild(wrapper);
+    });
+    toast(`🗑️ Photo removed`);
+  }
+}
+
 // 1. Load Listings from Backend
 async function loadListings() {
   const grid = document.getElementById('listingsGrid');
@@ -206,8 +312,11 @@ async function submitListing() {
   const price = parseFloat(document.getElementById('newPrice')?.value);
   const town = document.getElementById('newTown')?.value.trim();
 
-  if (!title || !qty || !price || !town) return toast("⚠️ Fill required fields");
+  if (!title || !qty || !price || !town) {
+    return toast("⚠️ Fill in: Title, Quantity, Price, Town");
+  }
 
+  // Build FormData
   const fd = new FormData();
   fd.append('title', title);
   fd.append('category', document.getElementById('newCat').value);
@@ -220,20 +329,65 @@ async function submitListing() {
   fd.append('badge', document.getElementById('newBadge').value || '');
   fd.append('delivery', document.getElementById('newDelivery').value || 'Pickup only');
   
-  uploadedPhotos.forEach(function(p) { fd.append('photos', p.file); });
+  // Add photos
+  console.log(`📤 Submitting with ${uploadedPhotos.length} photos`);
+  uploadedPhotos.forEach(function(p, idx) {
+    fd.append('photos', p.file);
+    console.log(`   Photo ${idx + 1}: ${p.file.name} (${Math.round(p.file.size / 1024)}KB)`);
+  });
+
+  toast('📤 Publishing... please wait');
 
   try {
-    await api.post('/listings', fd, true);
-    toast('🌾 Published!');
+    const baseUrl = window.location.hostname === 'localhost'
+      ? 'http://localhost:4000'
+      : 'https://namagriconnect-3.onrender.com';
+
+    const token = localStorage.getItem('token');
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
+
+    const response = await fetch(baseUrl + '/api/listings', {
+      method: 'POST',
+      headers: {
+        'Authorization': token ? 'Bearer ' + token : ''
+      },
+      body: fd,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errData = await response.json().catch(() => ({ error: 'Server error ' + response.status }));
+      throw new Error(errData.error || 'Failed: ' + response.status);
+    }
+
+    const data = await response.json();
+    console.log('✅ Listing published:', data);
+
+    toast('🌾 Published successfully!');
+    
+    // Reset form
     uploadedPhotos = [];
-    document.getElementById('photoPreview').innerHTML = '';
+    const preview = document.getElementById('photoPreview');
+    if (preview) preview.innerHTML = '';
+    
     ['newTitle', 'newQty', 'newPrice', 'newTown', 'newDesc'].forEach(function(id) {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
+    
     goTo('market');
     await loadListings();
-  } catch (e) { toast('⚠️ ' + e.message); }
+  } catch (e) {
+    console.error('❌ Publish error:', e);
+    if (e.name === 'AbortError') {
+      toast('⏱️ Server took too long. Try again.');
+    } else {
+      toast('⚠️ ' + e.message);
+    }
+  }
 }
 
 // 7. Photo Upload Preview
