@@ -20,7 +20,7 @@ process.on('unhandledRejection', (err) => {
   console.error('Server stayed alive.\n');
 });
 
-// ─── All Route Imports ───
+// ─── Route Imports ───
 import authRouter from './routes/auth.js';
 import listingsRouter from './routes/listings.js';
 import commentsRouter from './routes/comments.js';
@@ -43,9 +43,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
 
-// ─── Ensure Database Tables Exist on Startup ───
+// ══════════════════════════════════════════════════
+// 1️⃣ DATABASE SCHEMA — MUST RUN BEFORE ROUTES
+// ══════════════════════════════════════════════════
 console.log('\n🌱 Checking database schema...');
 try {
+  // Apply base schema
   const schemaPath = path.join(__dirname, 'schema.sql');
   if (fs.existsSync(schemaPath)) {
     const schema = fs.readFileSync(schemaPath, 'utf8');
@@ -53,6 +56,7 @@ try {
     console.log('✅ Base schema (users, listings, etc.) ensured');
   }
 
+  // Create extended tables
   db.exec(`
     CREATE TABLE IF NOT EXISTS wallets (
       id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER UNIQUE, balance REAL DEFAULT 0, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -68,58 +72,8 @@ try {
     );
   `);
   console.log('✅ Extended tables (wallets, orders, otp) ensured');
-  
-  const userCount = db.prepare('SELECT COUNT(*) AS c FROM users').get();
-  if (userCount.c === 0) {
-    const seedPath = path.join(__dirname, 'seed.sql');
-    if (fs.existsSync(seedPath)) {
-      const seed = fs.readFileSync(seedPath, 'utf8');
-      db.exec(seed);
-      console.log('✅ Seed data inserted (6 listings, 3 users)');
-    }
-  }
-} catch (e) {
-  console.error('❌ DB Init Error:', e.message);
-}
-console.log('🌱 Database initialization complete.\n');
 
-// ─── Middleware ───
-app.use(helmet({ crossOriginResourcePolicy: false }));
-app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    /\.vercel\.app$/  // Allow any Vercel app
-  ],
-  credentials: true
-}));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
-app.use(morgan('dev'));
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
-app.use('/api', rateLimit({ windowMs: 60000, max: 500 }));
-
-// ─── Health Check ───
-app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'NamAgriConnect', ts: Date.now() }));
-
-// ─── Routes ───
-app.use('/api/auth', authRouter);
-app.use('/api/listings', listingsRouter);
-app.use('/api/comments', commentsRouter);
-app.use('/api/rfqs', rfqsRouter);
-app.use('/api/talk', talkRouter);
-app.use('/api/soil', soilRouter);
-app.use('/api/virus', virusRouter);
-app.use('/api/weather', weatherRouter);
-app.use('/api/ussd', ussdRouter);
-app.use('/api/users', usersRouter);
-app.use('/api/wallet', walletRouter);
-app.use('/api/orders', ordersRouter);
-app.use('/api/otp', otpRouter);
-
-app.use(errorHandler);
-
-// Ensure order tracking columns exist
-try {
+  // 🔥 ADD NEW COLUMNS FOR ORDER TRACKING (BEFORE routes load)
   const cols = db.prepare("PRAGMA table_info(orders)").all().map(c => c.name);
   
   if (!cols.includes('received_at')) {
@@ -142,10 +96,66 @@ try {
     db.exec('ALTER TABLE orders ADD COLUMN archived INTEGER DEFAULT 0');
     console.log('✅ Added orders.archived');
   }
+  console.log('✅ Order tracking columns verified');
+  
+  // Seed data if empty
+  const userCount = db.prepare('SELECT COUNT(*) AS c FROM users').get();
+  if (userCount.c === 0) {
+    const seedPath = path.join(__dirname, 'seed.sql');
+    if (fs.existsSync(seedPath)) {
+      const seed = fs.readFileSync(seedPath, 'utf8');
+      db.exec(seed);
+      console.log('✅ Seed data inserted (6 listings, 3 users)');
+    }
+  }
 } catch (e) {
-  console.log('ℹ️ Order columns check:', e.message);
+  console.error('❌ DB Init Error:', e.message);
 }
+console.log('🌱 Database initialization complete.\n');
 
-// ─── Start Server ───
+// ══════════════════════════════════════════════════
+// 2️⃣ MIDDLEWARE
+// ══════════════════════════════════════════════════
+app.use(helmet({ crossOriginResourcePolicy: false }));
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    /\.vercel\.app$/
+  ],
+  credentials: true
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan('dev'));
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+app.use('/api', rateLimit({ windowMs: 60000, max: 500 }));
+
+// ══════════════════════════════════════════════════
+// 3️⃣ HEALTH CHECK
+// ══════════════════════════════════════════════════
+app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'NamAgriConnect', ts: Date.now() }));
+
+// ══════════════════════════════════════════════════
+// 4️⃣ ROUTES (Now safe — columns exist)
+// ══════════════════════════════════════════════════
+app.use('/api/auth', authRouter);
+app.use('/api/listings', listingsRouter);
+app.use('/api/comments', commentsRouter);
+app.use('/api/rfqs', rfqsRouter);
+app.use('/api/talk', talkRouter);
+app.use('/api/soil', soilRouter);
+app.use('/api/virus', virusRouter);
+app.use('/api/weather', weatherRouter);
+app.use('/api/ussd', ussdRouter);
+app.use('/api/users', usersRouter);
+app.use('/api/wallet', walletRouter);
+app.use('/api/orders', ordersRouter);
+app.use('/api/otp', otpRouter);
+
+app.use(errorHandler);
+
+// ══════════════════════════════════════════════════
+// 5️⃣ START SERVER
+// ══════════════════════════════════════════════════
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`🌾 NamAgriConnect backend → http://localhost:${PORT}`));
