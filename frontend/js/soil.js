@@ -1,11 +1,17 @@
-/* Soil AI Scanner — with fallback */
+/* Soil AI Scanner — with camera capture */
 
 async function runSoilScan() {
+  // Open the camera
+  const imageData = await captureFromCamera('soil');
+  if (!imageData) {
+    toast('❌ No photo captured');
+    return;
+  }
+
   const result = document.getElementById('soilResult');
   result.classList.add('show');
-  result.innerHTML = '<div style="display:flex;gap:8px;align-items:center"><span class="spinner"></span><b>Analyzing soil sample...</b></div>';
+  result.innerHTML = '<div style="display:flex;gap:8px;align-items:center"><span class="spinner"></span><b>Analyzing soil photo...</b></div>';
 
-  // Get manual readings if available
   const readings = {
     pH: parseFloat(document.getElementById('mPh')?.value) || 6.2,
     EC: parseFloat(document.getElementById('mEc')?.value) || 1.1,
@@ -15,15 +21,13 @@ async function runSoilScan() {
   };
 
   try {
-    // Try AI service first
     const data = await api.post('/soil/scan', {
-      image: 'sample-' + Date.now(),
+      image: imageData,
       readings: readings
     });
     renderSoilResult(data, true);
   } catch (e) {
-    console.log('AI service unavailable, using local analysis:', e.message);
-    // Smart local fallback
+    console.log('AI offline, using local analysis:', e.message);
     const data = localSoilAnalysis(readings);
     renderSoilResult(data, false);
   }
@@ -32,30 +36,25 @@ async function runSoilScan() {
 function localSoilAnalysis(readings) {
   const N = readings.N, P = readings.P, K = readings.K, pH = readings.pH, EC = readings.EC;
 
-  // Classify nutrients
   function classify(val, low, high) {
     if (val < low) return 'Low';
     if (val > high) return 'High';
     return 'Adequate';
   }
 
-  // Determine texture from N-P-K ratios (heuristic)
   let texture = 'Loam';
-  if (readings.N < 15 && readings.K < 100) texture = 'Sandy';
-  else if (readings.P > 25 && readings.K > 200) texture = 'Clay';
+  if (N < 15 && K < 100) texture = 'Sandy';
+  else if (P > 25 && K > 200) texture = 'Clay';
 
-  // Organic matter estimate
   let organic = '1.5%';
   if (N > 30 && P > 20) organic = '3.0%+';
   else if (N > 20) organic = '2.0%';
   else if (N < 15) organic = '0.8%';
 
-  // pH status
   let phStatus = 'Optimal';
   if (pH < 5.8) phStatus = 'Too acidic';
   else if (pH > 7.5) phStatus = 'Too alkaline';
 
-  // Salinity
   let salStatus = 'Safe';
   if (EC > 4) salStatus = 'High risk';
   else if (EC > 2) salStatus = 'Moderate';
@@ -80,7 +79,7 @@ function localSoilAnalysis(readings) {
 function renderSoilResult(d, fromAI) {
   document.getElementById('soilResult').innerHTML =
     '<h3 style="color:var(--green)">✅ Soil Analysis Complete</h3>' +
-    (fromAI ? '' : '<p style="font-size:11px;color:var(--warn);margin-bottom:8px">⚠️ Using smart local analysis (AI service offline)</p>') +
+    (fromAI ? '' : '<p style="font-size:11px;color:var(--warn);margin-bottom:8px">⚠️ Local analysis (AI service offline)</p>') +
     '<p style="font-size:13px;color:var(--muted);margin:8px 0">' +
       'Texture: <b>' + d.texture + '</b> • Organic: <b>' + d.organic_matter + '</b>' +
       ' • Salinity: <b>' + d.salinity.status + '</b> • pH: <b>' + d.ph.value + '</b> (' + d.ph.status + ')' +
@@ -125,4 +124,3 @@ async function runManualSoil() {
 
 window.runSoilScan = runSoilScan;
 window.runManualSoil = runManualSoil;
-window.localSoilAnalysis = localSoilAnalysis;
