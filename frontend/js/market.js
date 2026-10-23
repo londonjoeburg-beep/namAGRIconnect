@@ -1,6 +1,5 @@
 /* ══════════════════════════════════════════════════
    MARKET.JS — Complete, bulletproof version
-   Handles: Listings, Buy Now, Comments, Icons, Posting
    ══════════════════════════════════════════════════ */
 
 let listingsCache = [];
@@ -11,8 +10,6 @@ let uploadedPhotos = [];
 /* ══════════════════════════════════════════════════
    PHOTO UPLOAD HANDLER — Works on mobile & desktop
    ══════════════════════════════════════════════════ */
-
-let uploadedPhotos = [];
 
 async function handlePhotoSelect(event) {
   const files = Array.from(event.target.files || []);
@@ -35,10 +32,8 @@ async function handlePhotoSelect(event) {
   const limited = files.slice(0, 10);
   uploadedPhotos = [];
 
-  // Show loading
   preview.innerHTML = '<div style="padding:12px;font-size:13px;color:var(--muted)"><span class="spinner"></span> Processing photos...</div>';
 
-  // Process each photo
   for (let i = 0; i < limited.length; i++) {
     const file = limited[i];
     try {
@@ -51,7 +46,14 @@ async function handlePhotoSelect(event) {
     }
   }
 
-  // Render previews
+  renderPhotoPreviews();
+  console.log(`✅ ${uploadedPhotos.length} photos ready for upload`);
+  toast(`✅ ${uploadedPhotos.length} photo${uploadedPhotos.length > 1 ? 's' : ''} ready`);
+}
+
+function renderPhotoPreviews() {
+  const preview = document.getElementById('photoPreview');
+  if (!preview) return;
   preview.innerHTML = '';
   uploadedPhotos.forEach((photo, idx) => {
     const wrapper = document.createElement('div');
@@ -62,9 +64,6 @@ async function handlePhotoSelect(event) {
     `;
     preview.appendChild(wrapper);
   });
-
-  console.log(`✅ ${uploadedPhotos.length} photos ready for upload`);
-  toast(`✅ ${uploadedPhotos.length} photo${uploadedPhotos.length > 1 ? 's' : ''} ready`);
 }
 
 function compressImage(file, maxDim, quality) {
@@ -98,23 +97,25 @@ function compressImage(file, maxDim, quality) {
 function removePhoto(index) {
   if (index >= 0 && index < uploadedPhotos.length) {
     uploadedPhotos.splice(index, 1);
-    // Refresh preview
-    const preview = document.getElementById('photoPreview');
-    preview.innerHTML = '';
-    uploadedPhotos.forEach((photo, idx) => {
-      const wrapper = document.createElement('div');
-      wrapper.style.cssText = 'position:relative;display:inline-block';
-      wrapper.innerHTML = `
-        <img src="${photo.dataUrl}" style="width:70px;height:70px;object-fit:cover;border-radius:10px;border:2px solid var(--green)">
-        <button type="button" onclick="removePhoto(${idx})" style="position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:var(--danger);color:white;border:none;font-size:12px;font-weight:700;cursor:pointer">✕</button>
-      `;
-      preview.appendChild(wrapper);
-    });
+    renderPhotoPreviews();
     toast(`🗑️ Photo removed`);
   }
 }
 
-// 1. Load Listings from Backend
+/* ══════════════════════════════════════════════════
+   HELPER: Get API base URL (local or live)
+   ══════════════════════════════════════════════════ */
+
+function getApiBase() {
+  return window.location.hostname === 'localhost'
+    ? 'http://localhost:4000'
+    : 'https://namagriconnect-3.onrender.com';
+}
+
+/* ══════════════════════════════════════════════════
+   LOAD & RENDER LISTINGS
+   ══════════════════════════════════════════════════ */
+
 async function loadListings() {
   const grid = document.getElementById('listingsGrid');
   if (!grid) return;
@@ -129,12 +130,10 @@ async function loadListings() {
   }
 }
 
-// 2. Render Listings to the screen
 function renderListings() {
   const grid = document.getElementById('listingsGrid');
   if (!grid) return;
 
-  // Fix for the "steins" search box bug
   const searchBox = document.getElementById('searchBox');
   if (searchBox && searchBox.value === 'steins') {
     searchBox.value = '';
@@ -157,20 +156,24 @@ function renderListings() {
   }
 
   grid.innerHTML = '';
+  const baseUrl = getApiBase();
 
   filtered.forEach(function(l) {
     let photos = [];
     try { photos = typeof l.photos === 'string' ? JSON.parse(l.photos) : (l.photos || []); } catch (err) { photos = []; }
 
     const photo = photos[0];
-    const photoUrl = photo ? 'http://localhost:4000' + photo : null;
+    // 🔥 FIX: Use getApiBase() instead of hardcoded localhost
+    const photoUrl = photo ? (photo.startsWith('http') ? photo : baseUrl + photo) : null;
     const sellerPhone = l.owner_phone || l.contact_phone || l.phone || '';
     const sellerName = l.owner_name || l.contact_name || 'Farmer';
     const sellerPhoneClean = sellerPhone.replace(/\D/g, '');
     
     const isOwner = window.currentUser && window.currentUser.id === l.owner_id;
 
-    let photoHtml = photoUrl ? '<img src="' + photoUrl + '" alt="' + l.title + '">' : '<div style="display:flex;align-items:center;justify-content:center;height:100%;background:linear-gradient(135deg,#e8f5ec,#c8e6c9)"><img src="img/logo.png" alt="NamAgriConnect" style="height:80px;opacity:0.85"></div>';
+    let photoHtml = photoUrl
+      ? '<img src="' + photoUrl + '" alt="' + l.title + '">'
+      : '<div style="display:flex;align-items:center;justify-content:center;height:100%;background:linear-gradient(135deg,#e8f5ec,#c8e6c9)"><img src="img/logo.png" alt="NamAgriConnect" style="height:80px;opacity:0.85"></div>';
     
     let badgeHtml = l.badge ? '<span class="badge gold">✔ ' + l.badge + '</span>' : '';
 
@@ -184,7 +187,6 @@ function renderListings() {
     const callBtn = '<a href="tel:' + sellerPhone + '" style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:#2980b9;color:white;box-shadow:0 4px 10px rgba(41,128,185,0.3)">' + callIcon + '</a>';
     const smsBtn = '<button type="button" onclick="openComments(' + l.id + ')" style="display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:#e8b73a;color:#3a2a00;border:none;cursor:pointer;box-shadow:0 4px 10px rgba(232,183,58,0.3)">' + smsIcon + '</button>';
 
-    // The Buy Button (Forces modal to open and stops page reload)
     const buyBtn = !isOwner ? '<button type="button" onclick="event.preventDefault(); event.stopPropagation(); openCheckout(' + l.id + ');" style="padding:8px 12px;font-size:12px;background:#e8b73a;border:none;border-radius:8px;cursor:pointer;font-weight:bold;color:#3a2a00;margin-left:auto;box-shadow:0 4px 10px rgba(232,183,58,0.3)">🛒 Buy Now</button>' : '';
     const ownerBtn = isOwner ? '<button type="button" onclick="markSold(' + l.id + ')" style="padding:8px 12px;font-size:12px;background:#0b6b3a;color:white;border:none;border-radius:8px;cursor:pointer;margin-left:auto">✅ Mark Sold</button>' : '';
 
@@ -205,7 +207,10 @@ function renderListings() {
   });
 }
 
-// 3. Buy Now (Checkout) Logic — FORCED TO SHOW
+/* ══════════════════════════════════════════════════
+   CHECKOUT
+   ══════════════════════════════════════════════════ */
+
 function openCheckout(listingId) {
   console.log('🛒 Buy clicked for listing:', listingId);
   
@@ -225,15 +230,12 @@ function openCheckout(listingId) {
   document.getElementById('checkoutAddress').value = '';
   document.getElementById('checkoutError').style.display = 'none';
   
-  // Force the modal to appear on top of everything
   const modal = document.getElementById('checkoutModal');
   if (modal) {
     modal.classList.add('show');
     modal.style.display = 'flex';
     modal.style.zIndex = '9999';
     console.log('✅ Modal forced open');
-  } else {
-    alert('Error: Checkout modal not found in HTML');
   }
 }
 
@@ -268,7 +270,10 @@ async function submitCheckout() {
   }
 }
 
-// 4. Comments Logic
+/* ══════════════════════════════════════════════════
+   COMMENTS
+   ══════════════════════════════════════════════════ */
+
 async function openComments(id) {
   currentListingIdForComments = id;
   const list = document.getElementById('commentList');
@@ -277,7 +282,9 @@ async function openComments(id) {
   
   try {
     const rows = await api.get('/comments/listing/' + id);
-    list.innerHTML = rows.length ? rows.map(c => '<div class="talk-item"><div class="who">' + c.user_name + '</div><div style="font-size:13px">' + c.text + '</div></div>').join('') : '<p style="color:var(--muted)">No comments yet.</p>';
+    list.innerHTML = rows.length
+      ? rows.map(c => '<div class="talk-item"><div class="who">' + c.user_name + '</div><div style="font-size:13px">' + c.text + '</div></div>').join('')
+      : '<p style="color:var(--muted)">No comments yet.</p>';
   } catch (e) {
     list.innerHTML = '<p style="color:red">' + e.message + '</p>';
   }
@@ -296,14 +303,20 @@ async function postComment() {
   } catch (e) { toast(e.message); }
 }
 
-// 5. Mark Sold (Owner only)
+/* ══════════════════════════════════════════════════
+   MARK SOLD
+   ══════════════════════════════════════════════════ */
+
 async function markSold(id) {
   if (!confirm('Mark as sold?')) return;
   await api.post('/listings/' + id + '/sold', {});
   loadListings();
 }
 
-// 6. Post a New Listing
+/* ══════════════════════════════════════════════════
+   POST NEW LISTING
+   ══════════════════════════════════════════════════ */
+
 async function submitListing() {
   if (!requireLogin('post a listing')) return;
 
@@ -316,7 +329,6 @@ async function submitListing() {
     return toast("⚠️ Fill in: Title, Quantity, Price, Town");
   }
 
-  // Build FormData
   const fd = new FormData();
   fd.append('title', title);
   fd.append('category', document.getElementById('newCat').value);
@@ -329,20 +341,13 @@ async function submitListing() {
   fd.append('badge', document.getElementById('newBadge').value || '');
   fd.append('delivery', document.getElementById('newDelivery').value || 'Pickup only');
   
-  // Add photos
   console.log(`📤 Submitting with ${uploadedPhotos.length} photos`);
-  uploadedPhotos.forEach(function(p, idx) {
-    fd.append('photos', p.file);
-    console.log(`   Photo ${idx + 1}: ${p.file.name} (${Math.round(p.file.size / 1024)}KB)`);
-  });
+  uploadedPhotos.forEach(function(p) { fd.append('photos', p.file); });
 
   toast('📤 Publishing... please wait');
 
   try {
-    const baseUrl = window.location.hostname === 'localhost'
-      ? 'http://localhost:4000'
-      : 'https://namagriconnect-3.onrender.com';
-
+    const baseUrl = getApiBase();
     const token = localStorage.getItem('token');
     
     const controller = new AbortController();
@@ -350,9 +355,7 @@ async function submitListing() {
 
     const response = await fetch(baseUrl + '/api/listings', {
       method: 'POST',
-      headers: {
-        'Authorization': token ? 'Bearer ' + token : ''
-      },
+      headers: { 'Authorization': token ? 'Bearer ' + token : '' },
       body: fd,
       signal: controller.signal
     });
@@ -363,12 +366,8 @@ async function submitListing() {
       throw new Error(errData.error || 'Failed: ' + response.status);
     }
 
-    const data = await response.json();
-    console.log('✅ Listing published:', data);
-
     toast('🌾 Published successfully!');
     
-    // Reset form
     uploadedPhotos = [];
     const preview = document.getElementById('photoPreview');
     if (preview) preview.innerHTML = '';
@@ -390,27 +389,8 @@ async function submitListing() {
   }
 }
 
-// 7. Photo Upload Preview
-document.getElementById('newPhotos')?.addEventListener('change', function(e) {
-  uploadedPhotos = [];
-  const preview = document.getElementById('photoPreview');
-  if (!preview) return;
-  preview.innerHTML = '';
-  [...e.target.files].slice(0, 10).forEach(function(f) {
-    const reader = new FileReader();
-    reader.onload = function(ev) {
-      uploadedPhotos.push({ dataUrl: ev.target.result, file: f });
-      const im = document.createElement('img');
-      im.src = ev.target.result;
-      im.style.cssText = 'width:60px;height:60px;object-fit:cover;border-radius:8px';
-      preview.appendChild(im);
-    };
-    reader.readAsDataURL(f);
-  });
-});
-
 /* ══════════════════════════════════════════════════
-   ORDERS & TRACKING LOGIC
+   ORDERS & TRACKING
    ══════════════════════════════════════════════════ */
 
 async function renderMyOrders() {
@@ -498,11 +478,22 @@ async function trackOrder() {
   }
 }
 
-// Make sure these are exported at the bottom of the file!
-window.renderMyOrders = renderMyOrders;
-window.trackOrder = trackOrder;
+/* ══════════════════════════════════════════════════
+   WIRE UP PHOTO INPUT (replaces old duplicate)
+   ══════════════════════════════════════════════════ */
 
-// Exports
+document.addEventListener('DOMContentLoaded', function() {
+  const photoInput = document.getElementById('newPhotos');
+  if (photoInput) {
+    photoInput.addEventListener('change', handlePhotoSelect);
+    console.log('✅ Photo input wired to handlePhotoSelect');
+  }
+});
+
+/* ══════════════════════════════════════════════════
+   EXPORTS
+   ══════════════════════════════════════════════════ */
+
 window.loadListings = loadListings;
 window.renderListings = renderListings;
 window.openCheckout = openCheckout;
@@ -511,6 +502,16 @@ window.openComments = openComments;
 window.postComment = postComment;
 window.markSold = markSold;
 window.submitListing = submitListing;
+window.renderMyOrders = renderMyOrders;
+window.trackOrder = trackOrder;
+window.handlePhotoSelect = handlePhotoSelect;
+window.removePhoto = removePhoto;
 
 // Initial Load
-loadListings();
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', loadListings);
+} else {
+  loadListings();
+}
+
+console.log('✅ market.js loaded — clean version');
