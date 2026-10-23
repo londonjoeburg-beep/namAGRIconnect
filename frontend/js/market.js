@@ -1,53 +1,48 @@
 /* ══════════════════════════════════════════════════
-   MARKET.JS — Complete, bulletproof version
+   MARKET.JS — Complete with order received + archive
    ══════════════════════════════════════════════════ */
 
 let listingsCache = [];
 let currentCheckoutListing = null;
 let currentListingIdForComments = null;
 let uploadedPhotos = [];
+let currentConfirmOrderId = null;
+
+function getApiBase() {
+  return window.location.hostname === 'localhost'
+    ? 'http://localhost:4000'
+    : 'https://namagriconnect-3.onrender.com';
+}
 
 /* ══════════════════════════════════════════════════
-   PHOTO UPLOAD HANDLER — Works on mobile & desktop
+   PHOTO HANDLER
    ══════════════════════════════════════════════════ */
 
 async function handlePhotoSelect(event) {
   const files = Array.from(event.target.files || []);
   const preview = document.getElementById('photoPreview');
-  
-  if (!preview) {
-    console.error('❌ photoPreview element not found');
-    return;
-  }
-
-  if (files.length === 0) {
-    console.log('No files selected');
-    return;
-  }
-
-  if (files.length > 10) {
-    toast('⚠️ Maximum 10 photos allowed. Only first 10 will be used.');
-  }
+  if (!preview) return;
+  if (files.length === 0) return;
+  if (files.length > 10) toast('⚠️ Max 10 photos');
 
   const limited = files.slice(0, 10);
   uploadedPhotos = [];
-
-  preview.innerHTML = '<div style="padding:12px;font-size:13px;color:var(--muted)"><span class="spinner"></span> Processing photos...</div>';
+  preview.innerHTML = '<div style="padding:12px;font-size:13px;color:var(--muted)"><span class="spinner"></span> Compressing...</div>';
 
   for (let i = 0; i < limited.length; i++) {
-    const file = limited[i];
     try {
-      const dataUrl = await compressImage(file, 1000, 0.75);
-      uploadedPhotos.push({ dataUrl, file });
-      console.log(`✅ Photo ${i + 1} ready (${Math.round(dataUrl.length / 1024)}KB)`);
+      const dataUrl = await compressImage(limited[i], 800, 0.7);
+      uploadedPhotos.push({ dataUrl, file: limited[i] });
     } catch (e) {
-      console.error(`❌ Photo ${i + 1} failed:`, e);
-      toast(`⚠️ Photo ${i + 1} could not be processed`);
+      try {
+        const dataUrl = await compressImage(limited[i], 600, 0.5);
+        uploadedPhotos.push({ dataUrl, file: limited[i] });
+      } catch (e2) {
+        toast(`⚠️ Photo ${i + 1} failed`);
+      }
     }
   }
-
   renderPhotoPreviews();
-  console.log(`✅ ${uploadedPhotos.length} photos ready for upload`);
   toast(`✅ ${uploadedPhotos.length} photo${uploadedPhotos.length > 1 ? 's' : ''} ready`);
 }
 
@@ -60,7 +55,7 @@ function renderPhotoPreviews() {
     wrapper.style.cssText = 'position:relative;display:inline-block';
     wrapper.innerHTML = `
       <img src="${photo.dataUrl}" style="width:70px;height:70px;object-fit:cover;border-radius:10px;border:2px solid var(--green)">
-      <button type="button" onclick="removePhoto(${idx})" style="position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:var(--danger);color:white;border:none;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center">✕</button>
+      <button type="button" onclick="removePhoto(${idx})" style="position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:var(--danger);color:white;border:none;font-size:12px;font-weight:700;cursor:pointer">✕</button>
     `;
     preview.appendChild(wrapper);
   });
@@ -68,28 +63,24 @@ function renderPhotoPreviews() {
 
 function compressImage(file, maxDim, quality) {
   return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('Timeout')), 30000);
     const reader = new FileReader();
     reader.onload = (ev) => {
       const img = new Image();
       img.onload = () => {
+        clearTimeout(timeout);
         let w = img.width, h = img.height;
-        if (w > h && w > maxDim) {
-          h = h * maxDim / w;
-          w = maxDim;
-        } else if (h > maxDim) {
-          w = w * maxDim / h;
-          h = maxDim;
-        }
+        if (w > h && w > maxDim) { h = h * maxDim / w; w = maxDim; }
+        else if (h > maxDim) { w = w * maxDim / h; h = maxDim; }
         const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
+        canvas.width = w; canvas.height = h;
         canvas.getContext('2d').drawImage(img, 0, 0, w, h);
         resolve(canvas.toDataURL('image/jpeg', quality));
       };
-      img.onerror = () => reject(new Error('Image load failed'));
+      img.onerror = () => { clearTimeout(timeout); reject(new Error('Image load failed')); };
       img.src = ev.target.result;
     };
-    reader.onerror = () => reject(new Error('File read failed'));
+    reader.onerror = () => { clearTimeout(timeout); reject(new Error('File read failed')); };
     reader.readAsDataURL(file);
   });
 }
@@ -98,22 +89,11 @@ function removePhoto(index) {
   if (index >= 0 && index < uploadedPhotos.length) {
     uploadedPhotos.splice(index, 1);
     renderPhotoPreviews();
-    toast(`🗑️ Photo removed`);
   }
 }
 
 /* ══════════════════════════════════════════════════
-   HELPER: Get API base URL (local or live)
-   ══════════════════════════════════════════════════ */
-
-function getApiBase() {
-  return window.location.hostname === 'localhost'
-    ? 'http://localhost:4000'
-    : 'https://namagriconnect-3.onrender.com';
-}
-
-/* ══════════════════════════════════════════════════
-   LOAD & RENDER LISTINGS
+   LISTINGS
    ══════════════════════════════════════════════════ */
 
 async function loadListings() {
@@ -135,9 +115,7 @@ function renderListings() {
   if (!grid) return;
 
   const searchBox = document.getElementById('searchBox');
-  if (searchBox && searchBox.value === 'steins') {
-    searchBox.value = '';
-  }
+  if (searchBox && searchBox.value === 'steins') searchBox.value = '';
 
   const q = (searchBox?.value || '').toLowerCase();
   const cat = document.getElementById('filterCat')?.value || '';
@@ -163,16 +141,14 @@ function renderListings() {
     try { photos = typeof l.photos === 'string' ? JSON.parse(l.photos) : (l.photos || []); } catch (err) { photos = []; }
 
     const photo = photos[0];
-    // 🔥 FIX: Use getApiBase() instead of hardcoded localhost
     const photoUrl = photo ? (photo.startsWith('http') ? photo : baseUrl + photo) : null;
     const sellerPhone = l.owner_phone || l.contact_phone || l.phone || '';
     const sellerName = l.owner_name || l.contact_name || 'Farmer';
     const sellerPhoneClean = sellerPhone.replace(/\D/g, '');
-    
     const isOwner = window.currentUser && window.currentUser.id === l.owner_id;
 
     let photoHtml = photoUrl
-      ? '<img src="' + photoUrl + '" alt="' + l.title + '">'
+      ? '<img src="' + photoUrl + '" alt="' + l.title + '" onerror="this.style.display=\'none\'">'
       : '<div style="display:flex;align-items:center;justify-content:center;height:100%;background:linear-gradient(135deg,#e8f5ec,#c8e6c9)"><img src="img/logo.png" alt="NamAgriConnect" style="height:80px;opacity:0.85"></div>';
     
     let badgeHtml = l.badge ? '<span class="badge gold">✔ ' + l.badge + '</span>' : '';
@@ -212,20 +188,15 @@ function renderListings() {
    ══════════════════════════════════════════════════ */
 
 function openCheckout(listingId) {
-  console.log('🛒 Buy clicked for listing:', listingId);
-  
   if (!window.currentUser) return requireLogin('place an order');
-  
   const listing = listingsCache.find(x => x.id === listingId);
   if (!listing) return alert('Listing not found');
 
   currentCheckoutListing = listing;
-
   document.getElementById('checkoutSummary').innerHTML = 
     '<b>' + listing.title + '</b><br>' +
     'Price: N$ ' + listing.price + ' / ' + listing.unit + '<br>' +
     'Available: ' + listing.quantity + ' ' + listing.unit;
-    
   document.getElementById('checkoutQty').value = '';
   document.getElementById('checkoutAddress').value = '';
   document.getElementById('checkoutError').style.display = 'none';
@@ -235,7 +206,6 @@ function openCheckout(listingId) {
     modal.classList.add('show');
     modal.style.display = 'flex';
     modal.style.zIndex = '9999';
-    console.log('✅ Modal forced open');
   }
 }
 
@@ -253,12 +223,9 @@ async function submitCheckout() {
 
   try {
     const res = await api.post('/orders', { 
-      listing_id: currentCheckoutListing.id, 
-      quantity: qty, 
-      delivery_address: address,
+      listing_id: currentCheckoutListing.id, quantity: qty, delivery_address: address,
       contact_phone: window.currentUser.phone 
     });
-    
     closeModal('checkoutModal');
     alert('✅ Order Confirmed!\n\nTracking: ' + res.tracking_code + '\nNew Balance: N$ ' + res.new_balance);
     loadListings();
@@ -279,12 +246,9 @@ async function openComments(id) {
   const list = document.getElementById('commentList');
   list.innerHTML = '<span class="spinner"></span>';
   openModal('commentModal');
-  
   try {
     const rows = await api.get('/comments/listing/' + id);
-    list.innerHTML = rows.length
-      ? rows.map(c => '<div class="talk-item"><div class="who">' + c.user_name + '</div><div style="font-size:13px">' + c.text + '</div></div>').join('')
-      : '<p style="color:var(--muted)">No comments yet.</p>';
+    list.innerHTML = rows.length ? rows.map(c => '<div class="talk-item"><div class="who">' + c.user_name + '</div><div style="font-size:13px">' + c.text + '</div></div>').join('') : '<p style="color:var(--muted)">No comments yet.</p>';
   } catch (e) {
     list.innerHTML = '<p style="color:red">' + e.message + '</p>';
   }
@@ -295,7 +259,6 @@ async function postComment() {
   const input = document.getElementById('commentInput');
   const text = input.value.trim();
   if (!text) return;
-  
   try {
     await api.post('/comments', { listing_id: currentListingIdForComments, text: text });
     input.value = '';
@@ -314,7 +277,7 @@ async function markSold(id) {
 }
 
 /* ══════════════════════════════════════════════════
-   POST NEW LISTING
+   SUBMIT LISTING
    ══════════════════════════════════════════════════ */
 
 async function submitListing() {
@@ -341,15 +304,15 @@ async function submitListing() {
   fd.append('badge', document.getElementById('newBadge').value || '');
   fd.append('delivery', document.getElementById('newDelivery').value || 'Pickup only');
   
-  console.log(`📤 Submitting with ${uploadedPhotos.length} photos`);
-  uploadedPhotos.forEach(function(p) { fd.append('photos', p.file); });
+  uploadedPhotos.forEach(function(p) { 
+    if (p.file) fd.append('photos', p.file, p.file.name || 'photo.jpg');
+  });
 
-  toast('📤 Publishing... please wait');
+  toast('📤 Publishing...');
 
   try {
     const baseUrl = getApiBase();
     const token = localStorage.getItem('token');
-    
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 90000);
 
@@ -362,46 +325,37 @@ async function submitListing() {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      const errData = await response.json().catch(() => ({ error: 'Server error ' + response.status }));
+      const errData = await response.json().catch(() => ({ error: 'Server error' }));
       throw new Error(errData.error || 'Failed: ' + response.status);
     }
 
-    toast('🌾 Published successfully!');
-    
+    toast('🌾 Published!');
     uploadedPhotos = [];
     const preview = document.getElementById('photoPreview');
     if (preview) preview.innerHTML = '';
-    
     ['newTitle', 'newQty', 'newPrice', 'newTown', 'newDesc'].forEach(function(id) {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
-    
     goTo('market');
     await loadListings();
   } catch (e) {
-    console.error('❌ Publish error:', e);
-    if (e.name === 'AbortError') {
-      toast('⏱️ Server took too long. Try again.');
-    } else {
-      toast('⚠️ ' + e.message);
-    }
+    if (e.name === 'AbortError') toast('⏱️ Server took too long');
+    else toast('⚠️ ' + e.message);
   }
 }
 
 /* ══════════════════════════════════════════════════
-   ORDERS & TRACKING
+   MY ORDERS — with archive filter + confirm received
    ══════════════════════════════════════════════════ */
 
 async function renderMyOrders() {
   const container = document.getElementById('myOrdersContent');
   if (!container) return;
-  
   if (!window.currentUser) {
     container.innerHTML = '<p style="color:var(--muted)">Login to view orders.</p>';
     return;
   }
-
   container.innerHTML = '<span class="spinner"></span> Loading...';
 
   try {
@@ -411,82 +365,189 @@ async function renderMyOrders() {
       return;
     }
 
+    // Separate active and archived
+    const active = orders.filter(o => !o.archived);
+    const archived = orders.filter(o => o.archived);
+
     let html = '';
-    orders.forEach(o => {
-      let statusEmoji = '⏳';
-      if (o.status === 'processing') statusEmoji = '📦';
-      if (o.status === 'shipped') statusEmoji = '🚚';
-      if (o.status === 'delivered') statusEmoji = '✅';
-      if (o.status === 'cancelled') statusEmoji = '❌';
 
-      let badgeClass = 'warn';
-      if (o.status === 'delivered') badgeClass = 'ok';
-      if (o.status === 'cancelled') badgeClass = 'danger';
+    if (active.length) {
+      html += '<h3 style="color:var(--green);margin:12px 0 8px">📦 Active Orders</h3>';
+      active.forEach(o => html += renderOrderCard(o, true));
+    }
 
-      html += '<div class="talk-item" style="margin-bottom:10px">';
-      html +=   '<div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px">';
-      html +=     '<div>';
-      html +=       '<b>' + o.title + '</b>';
-      html +=       '<div style="font-size:12px;color:var(--muted);margin-top:4px">' + o.quantity + ' units • N$ ' + Number(o.total_price).toFixed(2) + '</div>';
-      html +=       '<div style="font-size:11px;color:var(--muted);margin-top:2px">Seller: ' + (o.seller_name || 'Farmer') + ' • ' + new Date(o.created_at).toLocaleDateString() + '</div>';
-      html +=     '</div>';
-      html +=     '<div style="text-align:right">';
-      html +=       '<span class="badge ' + badgeClass + '">' + statusEmoji + ' ' + o.status + '</span>';
-      html +=       '<div style="font-size:11px;font-family:monospace;margin-top:6px;background:rgba(0,0,0,0.05);padding:4px 8px;border-radius:6px">' + o.tracking_code + '</div>';
-      html +=     '</div>';
-      html +=   '</div>';
-      html += '</div>';
-    });
+    if (archived.length) {
+      html += '<h3 style="color:var(--muted);margin:20px 0 8px">📜 Order History (Archived)</h3>';
+      archived.forEach(o => html += renderOrderCard(o, false));
+    }
+
     container.innerHTML = html;
   } catch (e) {
     container.innerHTML = '<p style="color:var(--danger)">' + e.message + '</p>';
   }
 }
 
+function renderOrderCard(o, showConfirmButton) {
+  let statusEmoji = '⏳';
+  if (o.status === 'processing') statusEmoji = '📦';
+  if (o.status === 'shipped') statusEmoji = '🚚';
+  if (o.status === 'delivered') statusEmoji = '✅';
+  if (o.status === 'cancelled') statusEmoji = '❌';
+
+  let badgeClass = 'warn';
+  if (o.status === 'delivered') badgeClass = 'ok';
+  if (o.status === 'cancelled') badgeClass = 'danger';
+
+  const canConfirm = showConfirmButton && !o.buyer_reviewed && o.status !== 'cancelled';
+
+  let conditionBadge = '';
+  if (o.buyer_reviewed && o.condition_rating) {
+    const condEmoji = {
+      excellent: '🌟', good: '👍', acceptable: '👌',
+      damaged: '⚠️', wrong_item: '❌'
+    }[o.condition_rating] || '📋';
+    conditionBadge = `<span class="badge info" style="margin-top:6px;display:inline-block">${condEmoji} ${o.condition_rating.replace('_', ' ')}</span>`;
+  }
+
+  let html = '<div class="talk-item" style="margin-bottom:10px">';
+  html += '<div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px">';
+  html += '<div style="flex:1;min-width:180px">';
+  html += '<b>' + (o.title || 'Item') + '</b>';
+  html += '<div style="font-size:12px;color:var(--muted);margin-top:4px">' + o.quantity + ' units • N$ ' + Number(o.total_price).toFixed(2) + '</div>';
+  html += '<div style="font-size:11px;color:var(--muted);margin-top:2px">Seller: ' + (o.seller_name || 'Farmer') + '</div>';
+  html += conditionBadge;
+  html += '</div>';
+  html += '<div style="text-align:right">';
+  html += '<span class="badge ' + badgeClass + '">' + statusEmoji + ' ' + o.status + '</span>';
+  html += '<div style="font-size:11px;font-family:monospace;margin-top:6px;background:rgba(0,0,0,0.05);padding:4px 8px;border-radius:6px">' + (o.tracking_code || '—') + '</div>';
+  html += '</div>';
+  html += '</div>';
+
+  if (o.condition_notes) {
+    html += '<div style="margin-top:8px;padding:10px;background:rgba(255,255,255,0.5);border-radius:8px;font-size:12px;color:var(--muted)"><b>Notes:</b> ' + o.condition_notes + '</div>';
+  }
+
+  if (canConfirm) {
+    html += '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">';
+    html += '<button type="button" onclick="openConfirmReceived(' + o.id + ')" style="width:100%;padding:10px;background:linear-gradient(135deg,#0b6b3a,#12934f);color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer">✅ Confirm Received</button>';
+    html += '</div>';
+  }
+
+  html += '</div>';
+  return html;
+}
+
+/* ══════════════════════════════════════════════════
+   CONFIRM RECEIVED MODAL
+   ══════════════════════════════════════════════════ */
+
+function openConfirmReceived(orderId) {
+  currentConfirmOrderId = orderId;
+
+  let modal = document.getElementById('confirmReceivedModal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'confirmReceivedModal';
+    modal.innerHTML = `
+      <div class="box">
+        <h3 style="margin-bottom:12px">📦 Confirm Received</h3>
+        <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Rate the condition of your order:</p>
+        
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+          <label style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(39,174,96,0.1);border:2px solid rgba(39,174,96,0.3);border-radius:10px;cursor:pointer">
+            <input type="radio" name="condition" value="excellent" style="width:auto">
+            <div><div style="font-weight:700">🌟 Excellent</div><div style="font-size:11px;color:var(--muted)">Everything perfect</div></div>
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(41,128,185,0.1);border:2px solid rgba(41,128,185,0.3);border-radius:10px;cursor:pointer">
+            <input type="radio" name="condition" value="good" style="width:auto">
+            <div><div style="font-weight:700">👍 Good</div><div style="font-size:11px;color:var(--muted)">Minor issues</div></div>
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(230,126,34,0.1);border:2px solid rgba(230,126,34,0.3);border-radius:10px;cursor:pointer">
+            <input type="radio" name="condition" value="acceptable" style="width:auto">
+            <div><div style="font-weight:700">👌 Acceptable</div><div style="font-size:11px;color:var(--muted)">Works but not great</div></div>
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(192,57,43,0.1);border:2px solid rgba(192,57,43,0.3);border-radius:10px;cursor:pointer">
+            <input type="radio" name="condition" value="damaged" style="width:auto">
+            <div><div style="font-weight:700">⚠️ Damaged</div><div style="font-size:11px;color:var(--muted)">Item is broken</div></div>
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;padding:12px;background:rgba(192,57,43,0.15);border:2px solid rgba(192,57,43,0.4);border-radius:10px;cursor:pointer">
+            <input type="radio" name="condition" value="wrong_item" style="width:auto">
+            <div><div style="font-weight:700">❌ Wrong Item</div><div style="font-size:11px;color:var(--muted)">Received wrong product</div></div>
+          </label>
+        </div>
+        
+        <label style="display:block;font-size:13px;font-weight:700;color:var(--muted);margin-bottom:8px">Notes (optional)</label>
+        <textarea id="conditionNotes" rows="2" placeholder="Additional comments..." style="margin-bottom:16px"></textarea>
+        
+        <button class="btn block" onclick="submitConfirmReceived()">✅ Confirm Receipt</button>
+        <button class="btn outline block" style="margin-top:8px" onclick="closeModal('confirmReceivedModal')">Cancel</button>
+      </div>
+    `;
+    document.body.appendChild(modal);
+  }
+
+  document.querySelectorAll('input[name="condition"]').forEach(r => r.checked = false);
+  const notes = document.getElementById('conditionNotes');
+  if (notes) notes.value = '';
+
+  openModal('confirmReceivedModal');
+}
+
+async function submitConfirmReceived() {
+  const selected = document.querySelector('input[name="condition"]:checked');
+  if (!selected) return toast('⚠️ Select a condition');
+
+  const condition = selected.value;
+  const notes = document.getElementById('conditionNotes')?.value.trim() || '';
+
+  try {
+    await api.post(`/orders/${currentConfirmOrderId}/confirm-received`, {
+      condition: condition,
+      notes: notes
+    });
+
+    closeModal('confirmReceivedModal');
+    toast('✅ Order confirmed and archived!');
+    renderMyOrders();
+  } catch (e) {
+    toast('⚠️ ' + e.message);
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   TRACK ORDER
+   ══════════════════════════════════════════════════ */
+
 async function trackOrder() {
   const code = document.getElementById('trackingCode').value.trim().toUpperCase();
   if (!code) return toast('⚠️ Enter tracking code');
-
   const result = document.getElementById('trackingResult');
   result.style.display = 'block';
   result.innerHTML = '<span class="spinner"></span> Tracking...';
-
   try {
     const order = await api.get('/orders/track/' + code);
-
     const steps = ['pending', 'processing', 'shipped', 'delivered'];
     const currentIdx = steps.indexOf(order.status);
-
     let stepsHtml = '';
     steps.forEach((s, i) => {
       const active = i <= currentIdx;
-      stepsHtml += '<div style="text-align:center;flex:1;position:relative;z-index:2">';
-      stepsHtml +=   '<div style="width:40px;height:40px;border-radius:50%;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:20px;background:' + (active ? 'var(--green)' : 'rgba(0,0,0,0.1)') + ';color:' + (active ? 'white' : 'var(--muted)') + '">' + (active ? '✓' : (i + 1)) + '</div>';
-      stepsHtml +=   '<div style="font-size:11px;font-weight:600;color:' + (active ? 'var(--green)' : 'var(--muted)') + '">' + s.toUpperCase() + '</div>';
-      stepsHtml += '</div>';
+      stepsHtml += '<div style="text-align:center;flex:1"><div style="width:40px;height:40px;border-radius:50%;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:20px;background:' + (active ? 'var(--green)' : 'rgba(0,0,0,0.1)') + ';color:' + (active ? 'white' : 'var(--muted)') + '">' + (active ? '✓' : (i + 1)) + '</div><div style="font-size:11px;font-weight:600;color:' + (active ? 'var(--green)' : 'var(--muted)') + '">' + s.toUpperCase() + '</div></div>';
     });
-
-    result.innerHTML =
-      '<h3 style="color:var(--green);margin-bottom:12px">📦 Order ' + order.tracking_code + '</h3>' +
-      '<p style="font-size:13px;margin-bottom:8px"><b>' + order.title + '</b> × ' + order.quantity + '</p>' +
-      '<p style="font-size:13px;color:var(--muted);margin-bottom:16px">Total: N$ ' + Number(order.total_price).toFixed(2) + '</p>' +
-      '<div style="display:flex;justify-content:space-between;margin:24px 0;position:relative">' + stepsHtml + '</div>' +
-      '<p style="font-size:13px;margin-top:16px"><b>Deliver to:</b> ' + order.delivery_address + '</p>' +
-      '<p style="font-size:13px"><b>Ordered:</b> ' + new Date(order.created_at).toLocaleString() + '</p>';
+    result.innerHTML = '<h3 style="color:var(--green);margin-bottom:12px">📦 ' + order.tracking_code + '</h3><p style="font-size:13px;margin-bottom:8px"><b>' + order.title + '</b> × ' + order.quantity + '</p><p style="font-size:13px;color:var(--muted);margin-bottom:16px">Total: N$ ' + Number(order.total_price).toFixed(2) + '</p><div style="display:flex;justify-content:space-between;margin:24px 0">' + stepsHtml + '</div><p style="font-size:13px"><b>Deliver to:</b> ' + order.delivery_address + '</p>';
   } catch (e) {
     result.innerHTML = '<p style="color:var(--danger)">' + e.message + '</p>';
   }
 }
 
 /* ══════════════════════════════════════════════════
-   WIRE UP PHOTO INPUT (replaces old duplicate)
+   WIRE UP
    ══════════════════════════════════════════════════ */
 
 document.addEventListener('DOMContentLoaded', function() {
   const photoInput = document.getElementById('newPhotos');
   if (photoInput) {
     photoInput.addEventListener('change', handlePhotoSelect);
-    console.log('✅ Photo input wired to handlePhotoSelect');
   }
 });
 
@@ -506,12 +567,13 @@ window.renderMyOrders = renderMyOrders;
 window.trackOrder = trackOrder;
 window.handlePhotoSelect = handlePhotoSelect;
 window.removePhoto = removePhoto;
+window.openConfirmReceived = openConfirmReceived;
+window.submitConfirmReceived = submitConfirmReceived;
 
-// Initial Load
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', loadListings);
 } else {
   loadListings();
 }
 
-console.log('✅ market.js loaded — clean version');
+console.log('✅ market.js loaded — with order received + archive');

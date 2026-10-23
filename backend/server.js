@@ -118,6 +118,34 @@ app.use('/api/otp', otpRouter);
 
 app.use(errorHandler);
 
+// Ensure order tracking columns exist
+try {
+  const cols = db.prepare("PRAGMA table_info(orders)").all().map(c => c.name);
+  
+  if (!cols.includes('received_at')) {
+    db.exec('ALTER TABLE orders ADD COLUMN received_at DATETIME');
+    console.log('✅ Added orders.received_at');
+  }
+  if (!cols.includes('condition_rating')) {
+    db.exec('ALTER TABLE orders ADD COLUMN condition_rating TEXT');
+    console.log('✅ Added orders.condition_rating');
+  }
+  if (!cols.includes('condition_notes')) {
+    db.exec('ALTER TABLE orders ADD COLUMN condition_notes TEXT');
+    console.log('✅ Added orders.condition_notes');
+  }
+  if (!cols.includes('buyer_reviewed')) {
+    db.exec('ALTER TABLE orders ADD COLUMN buyer_reviewed INTEGER DEFAULT 0');
+    console.log('✅ Added orders.buyer_reviewed');
+  }
+  if (!cols.includes('archived')) {
+    db.exec('ALTER TABLE orders ADD COLUMN archived INTEGER DEFAULT 0');
+    console.log('✅ Added orders.archived');
+  }
+} catch (e) {
+  console.log('ℹ️ Order columns check:', e.message);
+}
+
 // ─── Start Server ───
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => console.log(`🌾 NamAgriConnect backend → http://localhost:${PORT}`));
