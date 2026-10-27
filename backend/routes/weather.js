@@ -2,6 +2,7 @@ import { Router } from 'express';
 import fetch from 'node-fetch';
 
 const router = Router();
+const AI = process.env.AI_SERVICE_URL || 'http://localhost:5000';
 
 // Namibian regions with coordinates
 const REGIONS = {
@@ -21,7 +22,6 @@ const REGIONS = {
   'Kunene':        { lat: -20.1167, lon: 14.1000, city: 'Opuwo' }
 };
 
-// Weather code → emoji
 function weatherEmoji(code) {
   if (code === 0) return '☀️';
   if (code <= 3) return '⛅';
@@ -40,36 +40,25 @@ function fireRisk(temp, humidity, rain) {
   return 'Low';
 }
 
-// 🔥 Fetch weather for one region with 3 retries + fallback
 async function fetchRegionWeather(region, coords) {
   const { lat, lon, city } = coords;
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}` +
     `&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m` +
     `&hourly=precipitation_probability&forecast_days=1&timezone=Africa/Windhoek`;
 
-  // Try up to 3 times
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      console.log(`🌤️ [${region}] Attempt ${attempt}/3...`);
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000); // 15 second timeout
-
+      const timeout = setTimeout(() => controller.abort(), 15000);
       const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timeout);
 
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const current = data.current || {};
 
-      // Debug log
-      console.log(`🌤️ [${region}] temp=${current.temperature_2m}, humidity=${current.relative_humidity_2m}`);
-
-      // Validate
       if (current.temperature_2m === undefined || current.temperature_2m === null) {
-        throw new Error('Missing temperature in response');
+        throw new Error('Missing temperature');
       }
 
       return {
@@ -88,17 +77,12 @@ async function fetchRegionWeather(region, coords) {
       };
     } catch (err) {
       console.error(`🌤️ [${region}] Attempt ${attempt} failed:`, err.message);
-      if (attempt === 3) {
-        // All retries failed — return fallback
-        return getFallbackWeather(region, city);
-      }
-      // Wait 1 second before retry
+      if (attempt === 3) return getFallbackWeather(region, city);
       await new Promise(r => setTimeout(r, 1000));
     }
   }
 }
 
-// 🔥 Fallback weather (based on region's typical climate)
 function getFallbackWeather(region, city) {
   const fallbacks = {
     'Khomas':        { temp: 28, cond: '☀️', humidity: 40, rain: 5, fire: 'Moderate', moisture: 14 },
@@ -116,52 +100,33 @@ function getFallbackWeather(region, city) {
     '//Karas':       { temp: 24, cond: '☀️', humidity: 32, rain: 0, fire: 'High', moisture: 8 },
     'Kunene':        { temp: 28, cond: '☀️', humidity: 40, rain: 8, fire: 'Moderate', moisture: 12 }
   };
-
   const fb = fallbacks[region] || { temp: 28, cond: '☀️', humidity: 45, rain: 10, fire: 'Low', moisture: 15 };
-  
   return {
-    region,
-    city,
-    temp: fb.temp,
-    cond: fb.cond,
-    humidity: fb.humidity,
-    rain: fb.rain,
-    wind: 10,
-    frost: fb.temp <= 3,
-    fire: fb.fire,
-    moisture: fb.moisture,
+    region, city,
+    temp: fb.temp, cond: fb.cond, humidity: fb.humidity,
+    rain: fb.rain, wind: 10, frost: fb.temp <= 3,
+    fire: fb.fire, moisture: fb.moisture,
     updatedAt: new Date().toISOString(),
     source: 'fallback'
   };
 }
 
-// GET /api/weather/regions — real live weather for all regions
 router.get('/regions', async (_req, res) => {
   try {
     const entries = Object.entries(REGIONS);
-    console.log(`🌤️ Fetching weather for ${entries.length} regions...`);
-    
-    // Fetch all in parallel
     const results = await Promise.all(
       entries.map(([region, coords]) => fetchRegionWeather(region, coords))
     );
-    
-    const live = results.filter(r => r.source === 'live').length;
-    const fallback = results.filter(r => r.source === 'fallback').length;
-    console.log(`✅ Weather loaded: ${live} live, ${fallback} fallback`);
-    
     res.json(results);
   } catch (e) {
     console.error('❌ Weather endpoint error:', e);
-    // Return all fallbacks if something catastrophic happens
-    const results = Object.entries(REGIONS).map(([region, coords]) => 
+    const results = Object.entries(REGIONS).map(([region, coords]) =>
       getFallbackWeather(region, coords.city)
     );
     res.json(results);
   }
 });
 
-// GET /api/weather/ndvi — NDVI data (simulated)
 router.get('/ndvi', (_req, res) => {
   res.json([
     { region: 'Kavango East', v: 0.78 },
@@ -171,6 +136,63 @@ router.get('/ndvi', (_req, res) => {
     { region: 'Otjozondjupa', v: 0.55 },
     { region: '//Karas', v: 0.22 }
   ]);
+});
+
+/* ══════════════════════════════════════════════════
+   🔥 IRRIGATION CALCULATOR — MISSING ENDPOINT FIX
+   ══════════════════════════════════════════════════ */
+
+router.post('/irrigation', async (req, res) => {
+  try {
+    console.log('💧 Irrigation request:', req.body);
+
+    // Try AI service first
+    try {
+      const aiRes = await fetch(`${AI}/analyze/water`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body)
+      });
+      if (aiRes.ok) {
+        const aiData = await aiRes.json();
+        console.log('✅ Irrigation from AI service');
+        return res.json({ ...aiData, source: 'ai' });
+      }
+    } catch (aiErr) {
+      console.log('ℹ️ AI service offline, using local calculation');
+    }
+
+    // Fallback: local calculation
+    const CROP = { maize: 5.5, wheat: 4.5, tomato: 6.5, onion: 4.8, potato: 5.2, grapes: 6.0, pasture: 7.5 };
+    const SOIL = { sandy: 1.15, clay: 0.9, loam: 1.0 };
+
+    const { crop = 'maize', area = 1, soil = 'loam', stage = 1 } = req.body || {};
+    const areaNum = parseFloat(area) || 1;
+    const stageNum = parseFloat(stage) || 1;
+
+    const base = (CROP[crop] || 5.5) * (SOIL[soil] || 1) * stageNum;
+    const liters = base * 10000 * areaNum;
+
+    const result = {
+      crop,
+      area_ha: areaNum,
+      soil,
+      stage: stageNum,
+      daily_liters: Math.round(liters),
+      daily_m3: +(liters / 1000).toFixed(1),
+      drip_hours: +(liters / (2.3 * 4 * 10000 * areaNum)).toFixed(1),
+      drip_pressure_bar: 1.2,
+      emitter_spacing_cm: 30,
+      note: 'Adjust for rain forecast.',
+      source: 'local'
+    };
+
+    console.log('✅ Irrigation from local calculation:', result);
+    res.json(result);
+  } catch (e) {
+    console.error('❌ Irrigation error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 export default router;
