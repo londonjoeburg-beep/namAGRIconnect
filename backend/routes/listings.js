@@ -88,9 +88,11 @@ router.post('/', authMiddleware, upload.array('photos', 10), async (req, res) =>
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    const me = await query('SELECT name, phone FROM users WHERE id=?', [req.user.id]);
-    const owner = me.rows[0] || {};
-
+ const me = await query('SELECT name, phone FROM users WHERE id=?', [req.user.id]);
+if (!me.rows[0]) {
+  return res.status(401).json({ error: 'User not found. Please log in again.' });
+}
+const owner = me.rows[0];
     const result = await query(
       `INSERT INTO listings 
         (title, category, description, quantity, unit, price, region, town, 
