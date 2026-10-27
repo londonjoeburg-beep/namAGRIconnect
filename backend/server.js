@@ -135,55 +135,6 @@ app.use('/api', rateLimit({ windowMs: 60000, max: 500 }));
 // ══════════════════════════════════════════════════
 app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'NamAgriConnect', ts: Date.now() }));
 
-// ⚠️ TEMPORARY — Reset database endpoint
-// REMOVE THIS AFTER RESETTING!
-app.post('/api/admin/reset-database', async (req, res) => {
-  try {
-    const { secret } = req.body;
-    if (secret !== 'namagri_reset_2026') {
-      return res.status(403).json({ error: 'Forbidden' });
-    }
-    
-    console.log('⚠️ RESETTING DATABASE...');
-    
-    // Drop all data (keep tables)
-    db.exec(`
-      DELETE FROM likes;
-      DELETE FROM comments;
-      DELETE FROM talk_posts;
-      DELETE FROM rfqs;
-      DELETE FROM transactions;
-      DELETE FROM orders;
-      DELETE FROM wallets;
-      DELETE FROM otp_codes;
-      DELETE FROM listings;
-      DELETE FROM users;
-    `);
-    
-    // Re-seed
-    const seedPath = path.join(__dirname, 'seed.sql');
-    if (fs.existsSync(seedPath)) {
-      const seed = fs.readFileSync(seedPath, 'utf8');
-      db.exec(seed);
-    }
-    
-    const userCount = db.prepare('SELECT COUNT(*) AS c FROM users').get();
-    const listingCount = db.prepare('SELECT COUNT(*) AS c FROM listings').get();
-    
-    console.log(`✅ Database reset. Users: ${userCount.c}, Listings: ${listingCount.c}`);
-    
-    res.json({
-      ok: true,
-      message: 'Database reset successfully',
-      users: userCount.c,
-      listings: listingCount.c
-    });
-  } catch (e) {
-    console.error('❌ Reset error:', e);
-    res.status(500).json({ error: e.message });
-  }
-});
-
 // ══════════════════════════════════════════════════
 // 4️⃣ ROUTES (Now safe — columns exist)
 // ══════════════════════════════════════════════════
